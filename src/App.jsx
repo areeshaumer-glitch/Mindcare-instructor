@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import {
   SignIn,
@@ -14,9 +15,46 @@ import {
   MyProfile
 } from "./Pages/PagesList";
 
+function ToastHost() {
+  const [toasts, setToasts] = useState([]);
+  useEffect(() => {
+    const handler = (e) => {
+      const detail = e?.detail || {};
+      const message = String(detail?.message || "").trim();
+      const type = detail?.type === "success" ? "success" : "error";
+      if (!message) return;
+      const id = Date.now() + Math.random();
+      setToasts((prev) => [...prev, { id, type, message }]);
+      const timeout = setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 4000);
+      return () => clearTimeout(timeout);
+    };
+    window.addEventListener("app:toast", handler);
+    return () => {
+      window.removeEventListener("app:toast", handler);
+    };
+  }, []);
+  return (
+    <div className="fixed top-4 right-4 z-[1000] space-y-2">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className={`px-4 py-3 rounded-lg  text-sm ${
+            t.type === "error" ? " border border-[2px] border-red-500 bg-white text-red-500" : "bg-teal-600 text-white"
+          }`}
+        >
+          {t.message}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <ToastHost />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<SignIn />} />

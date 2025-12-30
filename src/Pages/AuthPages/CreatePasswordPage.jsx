@@ -61,9 +61,7 @@ const CreatePasswordPage = () => {
             onSuccess: () => {
               navigate('/');
             },
-            onError: (error) => {
-              setApiError(error?.message || 'Failed to reset password. Please try again.');
-            },
+            onError: () => {},
           });
 
           setSubmitting(false);
@@ -98,7 +96,7 @@ const CreatePasswordPage = () => {
                 name="confirmPassword"
                 type={showConfirm ? 'text' : 'password'}
                 placeholder="Confirm new password"
-                               className="w-full mb-4  px-4 py-3 border border-[#A1B0CC] rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10"
+                               className="w-full px-4 py-3 border border-[#A1B0CC] rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10"
 
               />
               <div

@@ -8,15 +8,15 @@ const AuthLayout = ({
   children,
 }) => {
   return (
-   <div className="flex flex-row h-screen w-full overflow-hidden">
+   <div className="flex flex-col md:flex-row min-h-screen w-full overflow-hidden">
   {/* Left Section (Image) */}
-  <div className="relative w-1/2 h-full overflow-hidden">
+  <div className="relative w-full md:w-1/2 h-[48vh] md:h-auto overflow-hidden">
     <div
       className="absolute inset-0 bg-cover bg-center"
       style={{ backgroundImage: `url(${images.therapyImage})` }}
     ></div>
     <div className="absolute inset-0 bg-black/30"></div>
-    <div className="relative z-10 flex flex-col justify-between h-full text-white p-10 font-nunito">
+    <div className="relative z-10 flex flex-col justify-between h-full md:h-full text-white p-6 md:p-10 font-nunito">
       <h1 className="text-2xl md:text-5xl font-bold font-nunito">MindCare</h1>
       <div className="space-y-4">
         <h2 className="text-2xl md:text-4xl font-nunitoBold leading-tight">
@@ -30,7 +30,7 @@ const AuthLayout = ({
   </div>
 
   {/* Right Section (Auth Form) */}
-  <div className="w-1/2 flex flex-col justify-center items-center bg-white px-8 py-10">
+  <div className="w-full md:w-1/2 flex flex-col justify-center items-center bg-white px-6 md:px-8 py-8 md:py-10">
     <div className="w-full max-w-md">
       <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6 text-center">
         {title}

@@ -55,6 +55,31 @@ const OTPPage = () => {
       nextInput?.focus()
     }
   }
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault()
+      const updated = [...otp]
+      if (updated[index]) {
+        updated[index] = ''
+        setOtp(updated)
+        return
+      }
+      if (index > 0) {
+        updated[index - 1] = ''
+        setOtp(updated)
+        const prevInput = document.getElementById(`otp-${index - 1}`)
+        prevInput?.focus()
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      const prevInput = document.getElementById(`otp-${Math.max(index - 1, 0)}`)
+      prevInput?.focus()
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      const nextInput = document.getElementById(`otp-${Math.min(index + 1, otp.length - 1)}`)
+      nextInput?.focus()
+    }
+  }
 
   const handleVerify = async () => {
     setApiError('');
@@ -70,24 +95,17 @@ const OTPPage = () => {
       return;
     }
 
-    if (flow === 'forgot_password') {
-      setIsSubmitting(true);
-      await callApi({
-        method: Method.POST,
-        endPoint: api.verifyOtpForgotPassword,
-        bodyParams: { email, otp: otpValue },
-        onSuccess: () => {
-          navigate('/create-password', { state: { email, flow } });
-        },
-        onError: (error) => {
-          setApiError(error?.message || 'Invalid or expired OTP.');
-        },
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    navigate('/create-password', { state: { email, flow } });
+    setIsSubmitting(true);
+    await callApi({
+      method: Method.POST,
+      endPoint: api.verifyOtpForgotPassword,
+      bodyParams: { email, otp: otpValue },
+      onSuccess: () => {
+        navigate('/create-password', { state: { email, flow } });
+      },
+      onError: () => {},
+    });
+    setIsSubmitting(false);
   };
 
   return (
@@ -99,16 +117,17 @@ const OTPPage = () => {
      <p className="text-center text-gray-500 mb-6">
      {otpHelpText}
       </p>
-     <div className="flex justify-between mb-3">
+     <div className="flex justify-center gap-2 md:gap-3 mb-3 flex-wrap">
         {otp.map((digit, index) => (
           <input
             key={index}
-            id={`otp-${index}`}
+           id={`otp-${index}`}
             type="text"
             maxLength={1}
            value={digit}
-           onChange={(e) => handleChange(e.target.value, index)}
-            className=" mb-2 w-14 h-14 text-center text-2xl font-medium border border-[#A1B0CC] border-[1px] rounded-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => handleChange(e.target.value, index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+            className="mb-2 w-10 h-10 text-center text-xl font-medium border border-[#A1B0CC] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-blue-500 md:w-14 md:h-14 md:text-2xl md:rounded-[15px]"
           />
         ))}
       </div>

@@ -85,6 +85,14 @@ const handleAuthenticationError = (logout: () => void, message: string) => {
   logout();
 };
 
+const emitToast = (message: string, type: "error" | "success" = "error") => {
+  try {
+    window.dispatchEvent(
+      new CustomEvent("app:toast", { detail: { type, message } })
+    );
+  } catch {}
+};
+
 export const callApi = async ({
   method,
   endPoint,
@@ -179,6 +187,10 @@ export const callApi = async ({
       } else if (responseData?.message) {
         console.error("API Error Message:", responseData.message);
       }
+      const m =
+        (responseData && (responseData.message || (responseData as any)?.data?.message)) ||
+        "Request failed. Please try again.";
+      emitToast(String(m));
     }
   } catch (error) {
     console.error("API Call Failed:", {
@@ -206,6 +218,7 @@ export const callApi = async ({
             serverError?.errorType === "INVALID_PASSWORD")
         ) {
           onError && onError({ message: "Incorrect password. Please try again." });
+          emitToast("Incorrect password. Please try again.");
           return;
         }
 
@@ -243,6 +256,9 @@ export const callApi = async ({
           useAuthStore.getState().logout,
           serverError?.message || "Authentication failed. Please login again."
         );
+        emitToast(
+          String(serverError?.message || "Authentication failed. Please login again.")
+        );
         return;
       }
 
@@ -251,6 +267,7 @@ export const callApi = async ({
           onError({
             message: "File is too large. Please upload a smaller file.",
           });
+        emitToast("File is too large. Please upload a smaller file.");
         return;
       }
 
@@ -259,6 +276,7 @@ export const callApi = async ({
         const message = serverError?.message?.toLowerCase() || "";
         if (message.includes("no file uploaded")) {
           onError && onError({ message: "No file uploaded. Please select a file." });
+          emitToast("No file uploaded. Please select a file.");
           return;
         }
       }
@@ -274,6 +292,7 @@ export const callApi = async ({
           serverError?.errorType === "INVALID_PASSWORD"
         ) {
           onError && onError({ message: "Incorrect password. Please try again." });
+          emitToast("Incorrect password. Please try again.");
           return;
         }
 
@@ -282,21 +301,26 @@ export const callApi = async ({
           message.includes("user not found") ||
           serverError?.errorType === "USER_NOT_FOUND"
         ) {
-          const identifier = String(bodyParams?.identifier ?? "").trim();
+          const identifier = String(
+            (bodyParams && (bodyParams.identifier ?? bodyParams.email ?? bodyParams.phone)) ?? ""
+          ).trim();
           const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
           const isPhone = /^\+?[0-9]{7,15}$/.test(identifier);
           const isSignin = endPoint.includes("auth/signin");
 
           if (isSignin && isEmail) {
-            onError && onError({ message: "Email not found. Please sign up first." });
+            onError && onError({ message: "Invalid credentials" });
+            emitToast("Invalid credentials");
             return;
           }
           if (isSignin && isPhone) {
-            onError && onError({ message: "Phone number not found. Please sign up first." });
+            onError && onError({ message: "Invalid credentials" });
+            emitToast("Invalid credentials");
             return;
           }
 
-          onError && onError({ message: "User not found. Please sign up first." });
+          onError && onError({ message: "Invalid user" });
+           emitToast("Invalid user");
           return;
         }
       }
@@ -304,6 +328,7 @@ export const callApi = async ({
       if (axiosError.code === "ECONNABORTED") {
         onError &&
           onError({ message: "Request timed out. Please try again." });
+        emitToast("Request timed out. Please try again.");
       } else if (
         axiosError.code === "NETWORK_ERROR" ||
         axiosError.message.includes("Network Error")
@@ -313,14 +338,18 @@ export const callApi = async ({
             message:
               "Network connection failed. Please check your internet connection.",
           });
+        emitToast("Network connection failed. Please check your internet connection.");
       } else if (axiosError.response) {
         const serverError = axiosError.response.data as ApiResponse;
         onError && onError(serverError);
+        emitToast(String(serverError?.message || "Request failed. Please try again."));
       } else {
         onError && onError({ message: "Request failed. Please try again." });
+        emitToast("Request failed. Please try again.");
       }
     } else {
       onError && onError({ message: "An unexpected error occurred." });
+      emitToast("An unexpected error occurred.");
     }
   }
 };

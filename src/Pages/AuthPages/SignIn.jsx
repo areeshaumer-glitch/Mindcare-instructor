@@ -16,11 +16,19 @@ export default function SignIn() {
   const setUserData = useAuthStore((s) => s.setUserData);
 
   const loginValidationSchema = Yup.object({
-    email: Yup.string().email('Invalid email').required('email is Required'),
+    email: Yup.string()
+      .required('Invalid credentials')
+      .test('email-or-phone', 'Invalid credentials', (value) => {
+        const raw = String(value || '').trim();
+        if (!raw) return false;
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+        const isPhone = /^\+?[0-9]{7,15}$/.test(raw);
+        return isEmail || isPhone;
+      }),
   password: Yup.string()
   .min(8, 'Min 8 chars with upper, lower, number & symbol')
   .matches(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*]).{8,}$/,
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\\^&\\*]).{8,}$/,
     'Min 8 chars with upper, lower, number & symbol'
   )
   .required('Password is required'),
@@ -86,9 +94,7 @@ export default function SignIn() {
 
               navigate('/home/dashboard');
             },
-            onError: (error) => {
-              setApiError(error?.message || 'Sign in failed. Please try again.');
-            },
+            onError: () => {},
           });
 
           setSubmitting(false);
@@ -96,11 +102,8 @@ export default function SignIn() {
       >
         {({ isSubmitting }) => (
           <Form className="space-y-4">
-            <CustomInput name="email" type="email" placeholder="Email address" />
+            <CustomInput name="email" type="text" placeholder="Email or phone" />
             <CustomInput name="password" type="password" placeholder="Password" withToggle />
-            {apiError ? (
-              <div className="text-red-500 text-sm">{apiError}</div>
-            ) : null}
             <div className="flex justify-end">
               <button 
                 onClick={handleForgotPassword}

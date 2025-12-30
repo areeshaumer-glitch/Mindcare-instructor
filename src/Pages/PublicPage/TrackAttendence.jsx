@@ -393,8 +393,6 @@ const TrackAttendence = () => {
                 <div className="divide-y divide-gray-100">
                   {isLoading ? (
                     <div className="p-6 text-center text-gray-600">Loading...</div>
-                  ) : apiError ? (
-                    <div className="p-6 text-center text-red-600">{apiError}</div>
                   ) : rows.length === 0 ? (
                     <div className="p-6 text-center text-gray-600">No attendance records found.</div>
                   ) : (

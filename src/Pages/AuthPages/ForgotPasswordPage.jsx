@@ -47,9 +47,7 @@ export default function ForgotPasswordPage() {
 
               navigate('/OTPPage', { state: { email: values.email } });
             },
-            onError: (error) => {
-              setApiError(error?.message || 'Failed to send OTP. Please try again.');
-            },
+            onError: () => {},
           });
 
           setSubmitting(false);
@@ -62,14 +60,11 @@ export default function ForgotPasswordPage() {
                 name="email"
                 type="email"
                 placeholder="Email address"
-                className="w-full px-4 py-3 border border-[#A1B0CC] rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 mb-4"
+                className="w-full px-4 py-3 border border-[#A1B0CC] rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 mb-1"
               />
               <ErrorMessage name="email" component="div" className="text-red-500 text-sm mt-1" />
             </div>
-            {apiError ? (
-              <div className="text-red-500 text-sm">{apiError}</div>
-            ) : null}
-            <PrimaryButton type="submit" className={`${isSubmitting ? 'opacity-70 pointer-events-none' : ''} mt-6`}>
+            <PrimaryButton type="submit" className={`${isSubmitting ? 'opacity-70 pointer-events-none' : ''} mt-2`}>
               SEND OTP
             </PrimaryButton>
           </Form>

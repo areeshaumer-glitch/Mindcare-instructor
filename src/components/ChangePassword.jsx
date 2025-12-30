@@ -2,17 +2,14 @@ import React, { useState } from 'react';
 import { Method, callApi } from '../network/NetworkManager';
 import { api } from '../network/Environment';
 import { useAuthStore } from '../store/authSlice';
-
 const ChangePassword = () => {
-  const token = useAuthStore((s) => s.token);
-
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-
-  const handleSubmit = async () => {
+const token = useAuthStore((s) => s.token);
+const [password, setPassword] = useState('');
+const [confirmPassword, setConfirmPassword] = useState('');
+const [isSaving, setIsSaving] = useState(false);
+const [errorMessage, setErrorMessage] = useState('');
+const [successMessage, setSuccessMessage] = useState('');
+const handleSubmit = async () => {
     setErrorMessage('');
     setSuccessMessage('');
 
