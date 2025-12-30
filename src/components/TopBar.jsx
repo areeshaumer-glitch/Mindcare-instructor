@@ -4,8 +4,9 @@ import NotificationModal from './NotificationModal';
 import { Method, callApi } from '../network/NetworkManager';
 import { api } from '../network/Environment';
 import { useAuthStore } from '../store/authSlice';
+import { Menu } from 'lucide-react';
 
-const TopBar = ({onClick}) => {
+const TopBar = ({ onClick, onMenuClick }) => {
   const [showModal, setShowModal] = useState(false);
   const [profile, setProfile] = useState(null);
   const userData = useAuthStore((s) => s.userData);
@@ -73,7 +74,19 @@ const [notifications, setNotifications] = useState([
   return (
     <header className="w-full bg-white shadow px-6 py-3 rounded-[12px] mb-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
-        <div className="text-lg font-medium text-gray-800">Hi, {displayName}</div>
+        <div className="flex items-center gap-3">
+          {onMenuClick ? (
+            <button
+              type="button"
+              onClick={onMenuClick}
+              className="min-[650px]:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 text-gray-700"
+              aria-label="Open menu"
+            >
+              <Menu size={22} />
+            </button>
+          ) : null}
+          <div className="text-lg font-medium text-gray-800">Hi, {displayName}</div>
+        </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
           <button

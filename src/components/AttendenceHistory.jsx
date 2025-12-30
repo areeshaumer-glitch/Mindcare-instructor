@@ -177,17 +177,17 @@ const AttendenceHistory = () => {
 
   return (
     <>
-      <div className="p-4">
+      <div className="bg-white p-4 rounded-2xl">
         <div className="w-full mx-auto">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h1 className="text-2xl md:text- font-bold text-teal-600">Attendance History</h1>
+          <div className="flex justify-between items-center mb-6 gap-4">
+            <h1 className="text-2xl font-semibold text-teal-600">Attendance History</h1>
             
             {/* Date Selector */}
             <div className="relative">
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors min-w-[220px]"
               >
                 <Calendar className="w-5 h-5 text-gray-500" />
                 <span className="text-gray-700">{selectedYmd ? formatDate(selectedDate) : 'Select Date'}</span>
@@ -245,35 +245,37 @@ const AttendenceHistory = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl overflow-hidden border border-gray-100">
-            <div className="bg-teal-600 text-white">
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg">
-                <div className="text-left">Name</div>
-                <div className="text-center">Gym</div>
-                <div className="text-center">Home</div>
-                <div className="text-center">Absent</div>
-              </div>
-            </div>
+          <div className="rounded-xl overflow-hidden border border-gray-100">
+            <div className="overflow-x-auto">
+              <div className="min-w-[560px]">
+                <div className="bg-teal-600 text-white rounded-xl">
+                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg">
+                    <div className="text-left">Name</div>
+                    <div className="text-center">Gym</div>
+                    <div className="text-center">Home</div>
+                    <div className="text-center">Absent</div>
+                  </div>
+                </div>
 
-            <div className="divide-y divide-gray-100">
-              {isLoading ? (
-                <div className="p-6 text-center text-gray-600">Loading...</div>
-              ) : apiError ? (
-                <div className="p-6 text-center text-red-600">{apiError}</div>
-              ) : rows.length === 0 ? (
-                <div className="p-6 text-center text-gray-600">No attendance records found.</div>
-              ) : (
-                rows.map((row) => {
-                  return (
-                    <div key={row.key} className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 p-4 items-center">
-                      <div className="text-left text-gray-700 truncate">{row?.name || 'Name Here'}</div>
-                      <div className="text-center text-gray-700">{row.gymPct}%</div>
-                      <div className="text-center text-gray-700">{row.homePct}%</div>
-                      <div className="text-center text-gray-700">{row.absentPct}%</div>
-                    </div>
-                  );
-                })
-              )}
+                <div className="divide-y divide-gray-100">
+                  {isLoading ? (
+                    <div className="p-6 text-center text-gray-600">Loading...</div>
+                  ) : apiError ? (
+                    <div className="p-6 text-center text-red-600">{apiError}</div>
+                  ) : rows.length === 0 ? (
+                    <div className="p-6 text-center text-gray-600">No attendance records found.</div>
+                  ) : (
+                    rows.map((row) => (
+                      <div key={row.key} className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 p-4 items-center">
+                        <div className="text-left text-gray-700 truncate">{row?.name || 'Name Here'}</div>
+                        <div className="text-center text-gray-700">{row.gymPct}%</div>
+                        <div className="text-center text-gray-700">{row.homePct}%</div>
+                        <div className="text-center text-gray-700">{row.absentPct}%</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

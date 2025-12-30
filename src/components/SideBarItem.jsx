@@ -5,7 +5,7 @@ const SidebarItem = ({ icon, label, active, onClick, isLast = false }) => (
 >
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 w-fit sm:w-full text-left text-sm font-medium rounded-lg transition ${
+      className={`flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-medium rounded-lg transition ${
         active ? "bg-teal-700 text-white" : "text-gray-700"
       }`}
     >
@@ -15,7 +15,7 @@ const SidebarItem = ({ icon, label, active, onClick, isLast = false }) => (
        className={`${isLast ? "w-12 h-10 lg:w-8 lg:h-6" : "w-5 h-5"} ${active ? "filter brightness-0 invert" : ""}`}
 
       />
-      <span className="hidden sm:inline">{label}</span>
+      <span className="inline">{label}</span>
     </button>
   </div>
 );

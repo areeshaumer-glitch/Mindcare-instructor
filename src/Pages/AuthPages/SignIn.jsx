@@ -97,7 +97,7 @@ export default function SignIn() {
         {({ isSubmitting }) => (
           <Form className="space-y-4">
             <CustomInput name="email" type="email" placeholder="Email address" />
-            <CustomInput name="password" type="password" placeholder="Password" />
+            <CustomInput name="password" type="password" placeholder="Password" withToggle />
             {apiError ? (
               <div className="text-red-500 text-sm">{apiError}</div>
             ) : null}

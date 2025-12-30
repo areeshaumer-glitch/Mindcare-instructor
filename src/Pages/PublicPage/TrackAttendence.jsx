@@ -19,6 +19,21 @@ const TrackAttendence = () => {
   const [feedbackError, setFeedbackError] = useState('');
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
+  useEffect(() => {
+    if (!isFeedbackOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    if (scrollBarWidth > 0) {
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    }
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+    };
+  }, [isFeedbackOpen]);
+
   const instructorProfileId =
     userData?.profile?._id ||
     userData?.profileId ||
@@ -265,7 +280,7 @@ const TrackAttendence = () => {
       const bodyParams = {
         type: 'session',
         comment,
-        rating: 5,
+        rating: 4,
         appointmentId: appointmentIdToSend,
         instructorProfileId,
       };
@@ -362,80 +377,84 @@ const TrackAttendence = () => {
           </div>
 
           {/* Attendance Table */}
-          <div className="bg-white ">
-            <div className="bg-teal-600 text-white rounded-xl">
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg ">
-                <div className="text-left">Name</div>
-                <div className="text-center">Absent</div>
-                <div className="text-center">Attend from Gym</div>
-                <div className="text-center whitespace-nowrap">Attend from home</div>
-                <div />
-              </div>
-            </div>
-
-            <div className="divide-y divide-gray-100">
-              {isLoading ? (
-                <div className="p-6 text-center text-gray-600">Loading...</div>
-              ) : apiError ? (
-                <div className="p-6 text-center text-red-600">{apiError}</div>
-              ) : rows.length === 0 ? (
-                <div className="p-6 text-center text-gray-600">No attendance records found.</div>
-              ) : (
-                rows.map((row) => (
-                  <div key={row.key} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 p-6 items-center ">
-                    <div className="text-left">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {row?.avatar ? (
-                          <img
-                            src={row.avatar}
-                            alt="Avatar"
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-semibold">
-                            {String(row?.name || 'N').trim().charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <p className="font-medium text-gray-700 text-lg truncate">{row?.name || 'Name Here'}</p>
-                      </div>
-                    </div>
-
-                    <div className="text-center">
-                      <span className="text-gray-600 text-lg">{row.absentPct}%</span>
-                    </div>
-
-                    <div className="text-center">
-                      <span className="text-gray-600 text-lg">{row.gymPct}%</span>
-                    </div>
-
-                    <div className="text-center">
-                      <span className="text-gray-600 text-lg">{row.homePct}%</span>
-                    </div>
-
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => openFeedback(row)} className="text-teal-600 text-sm hover:underline">
-                          Feedback
-                        </button>
-                        <button
-                          onClick={() =>
-                            navigate('/home/attendance-history', {
-                              state: {
-                                member: row,
-                                startDate,
-                                endDate,
-                              },
-                            })
-                          }
-                          className="text-teal-600 text-sm hover:underline"
-                        >
-                          Old History
-                        </button>
-                      </div>
-                    </div>
+          <div className="bg-white">
+            <div className="overflow-x-auto">
+              <div className="min-w-[760px]">
+                <div className="bg-teal-600 text-white rounded-xl">
+                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg">
+                    <div className="text-left">Name</div>
+                    <div className="text-center">Absent</div>
+                    <div className="text-center">Attend from Gym</div>
+                    <div className="text-center whitespace-nowrap">Attend from home</div>
+                    <div />
                   </div>
-                ))
-              )}
+                </div>
+
+                <div className="divide-y divide-gray-100">
+                  {isLoading ? (
+                    <div className="p-6 text-center text-gray-600">Loading...</div>
+                  ) : apiError ? (
+                    <div className="p-6 text-center text-red-600">{apiError}</div>
+                  ) : rows.length === 0 ? (
+                    <div className="p-6 text-center text-gray-600">No attendance records found.</div>
+                  ) : (
+                    rows.map((row) => (
+                      <div key={row.key} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 p-6 items-center">
+                        <div className="text-left">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {row?.avatar ? (
+                              <img
+                                src={row.avatar}
+                                alt="Avatar"
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-semibold">
+                                {String(row?.name || 'N').trim().charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <p className="font-medium text-gray-700 text-lg truncate">{row?.name || 'Name Here'}</p>
+                          </div>
+                        </div>
+
+                        <div className="text-center">
+                          <span className="text-gray-600 text-lg">{row.absentPct}%</span>
+                        </div>
+
+                        <div className="text-center">
+                          <span className="text-gray-600 text-lg">{row.gymPct}%</span>
+                        </div>
+
+                        <div className="text-center">
+                          <span className="text-gray-600 text-lg">{row.homePct}%</span>
+                        </div>
+
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => openFeedback(row)} className="text-teal-600 text-sm hover:underline">
+                              Feedback
+                            </button>
+                            <button
+                              onClick={() =>
+                                navigate('/home/attendance-history', {
+                                  state: {
+                                    member: row,
+                                    startDate,
+                                    endDate,
+                                  },
+                                })
+                              }
+                              className="text-teal-600 text-sm hover:underline"
+                            >
+                              Old History
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -443,19 +462,19 @@ const TrackAttendence = () => {
 
       {isFeedbackOpen ? (
         <div
-          className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4"
           onClick={closeFeedback}
         >
           <div
-            className="bg-white rounded-2xl shadow-lg w-full max-w-2xl overflow-hidden"
+            className="bg-white rounded-xl shadow-lg w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-8">
-              <div className="text-lg font-medium text-gray-800 mb-4">Feedback</div>
+            <div className="p-6">
+              <div className="text-base font-medium text-gray-900 mb-4">Feedback</div>
 
               <textarea
                 placeholder="Add Feedback"
-                className="w-full p-4 border border-gray-300 rounded-xl mb-4 min-h-[180px] resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full p-4 border border-gray-300 rounded-lg mb-4 min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
                 value={feedbackComment}
                 onChange={(e) => setFeedbackComment(e.target.value)}
               />
@@ -468,7 +487,7 @@ const TrackAttendence = () => {
                 type="button"
                 onClick={handleSendFeedback}
                 disabled={isSendingFeedback}
-                className={`block mx-auto w-64 px-6 py-3 rounded-full transition ${
+                className={`block ml-auto w-40 px-[56px] py-2 rounded-full transition ${
                   isSendingFeedback ? 'bg-teal-400 text-white cursor-not-allowed' : 'bg-teal-600 text-white hover:bg-teal-700'
                 }`}
               >
