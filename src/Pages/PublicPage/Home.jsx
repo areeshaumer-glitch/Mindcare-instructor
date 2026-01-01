@@ -29,6 +29,7 @@ const Home = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [selected, setSelected] = useState(() => getSelectedFromPath(location.pathname));
+  const [resetKey, setResetKey] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 650);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const refreshToken = useAuthStore((s) => s.refreshToken);
@@ -50,6 +51,9 @@ const Home = () => {
   };
 
   const handleClick = (label) => {
+    if (selected === label) {
+      setResetKey(prev => prev + 1);
+    }
     setSelected(label);
     setIsMobileMenuOpen(false);
     switch (label) {
@@ -148,9 +152,8 @@ const Home = () => {
 
       {/* Main Content */}
       <main
-        className={`flex-1 bg-slate-100 min-h-screen transition-all duration-300 ${
-          isCollapsed ? "ml-0" : "ml-56"
-        } p-6`}
+        className={`flex-1 bg-slate-100 min-h-screen transition-all duration-300 ${isCollapsed ? "ml-0" : "ml-56"
+          } p-6`}
       >
         <TopBar
           onMenuClick={isCollapsed ? () => setIsMobileMenuOpen((v) => !v) : undefined}
@@ -162,7 +165,7 @@ const Home = () => {
         />
 
         <div className="mt-6">
-          <Outlet /> {/* Child route content */}
+          <Outlet key={location.pathname + resetKey} /> {/* Child route content */}
         </div>
       </main>
     </div>

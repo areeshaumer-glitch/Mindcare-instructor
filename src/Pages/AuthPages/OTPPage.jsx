@@ -3,7 +3,7 @@ import AuthLayout from '../../layout/AuthLayout';
 import PrimaryButton from '../../components/PrimaryButton';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Method, callApi } from '../../network/NetworkManager';
+import { Method, callApi, emitToast } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
 
 
@@ -85,12 +85,12 @@ const OTPPage = () => {
     const otpValue = otp.join('');
 
     if (!email) {
-      setApiError('Email is missing. Please restart the reset flow.');
+      emitToast('Email is missing. Please restart the reset flow.', 'error');
       return;
     }
 
     if (otpValue.length !== 6) {
-      setApiError('Please enter the 6-digit OTP.');
+      emitToast('Please enter the 6-digit OTP.', 'error');
       return;
     }
 
@@ -130,7 +130,7 @@ const OTPPage = () => {
           />
         ))}
       </div>
-      {apiError ? <div className="text-red-500 text-sm mb-2">{apiError}</div> : null}
+
       <div className=" mb-6 mt-6">
         <p className="text-center text-lg text-teal-700 mb-2 mt=12">
           {formatTime(seconds)}

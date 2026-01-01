@@ -5,7 +5,7 @@ import { Method, callApi } from "../../network/NetworkManager";
 import { api } from "../../network/Environment";
 
 const VideoLibrary = () => {
-  const MAX_VIDEO_BYTES = 5 * 1024 * 1024;
+  const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
   const [videos, setVideos] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -32,11 +32,11 @@ const VideoLibrary = () => {
     file: null,
     fileName: ""
   });
-const [uploadErrors, setUploadErrors] = useState({
-  title: false,
-  description: false,
-  file: false,
-});
+  const [uploadErrors, setUploadErrors] = useState({
+    title: false,
+    description: false,
+    file: false,
+  });
 
   const uploadVideoToS3 = useCallback(async (file) => {
     return await new Promise((resolve, reject) => {
@@ -407,7 +407,7 @@ const [uploadErrors, setUploadErrors] = useState({
       setVideos(s3Videos);
       setApiError(
         mindfulnessResponse?.err?.message ||
-          "Mindfulness videos are unavailable. Showing raw S3 videos instead.",
+        "Mindfulness videos are unavailable. Showing raw S3 videos instead.",
       );
     } else {
       setVideos([]);
@@ -462,6 +462,19 @@ const [uploadErrors, setUploadErrors] = useState({
     };
   }, [resolveVideoPlaybackUrl, selectedVideo]);
 
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    setApiError("");
+    setUploadForm({ title: "", description: "", file: null, fileName: "" });
+    setUploadErrors({ title: false, description: false, file: false });
+    setIsUploadAttempted(false);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setApiError("");
+  };
+
   // Handle upload form
   const handleUploadChange = (field, value) => {
     setUploadForm(prev => ({ ...prev, [field]: value }));
@@ -489,66 +502,66 @@ const [uploadErrors, setUploadErrors] = useState({
     }
   };
 
-const handleUploadSubmit = async () => {
-  setIsUploadAttempted(true);
-  setApiError("");
+  const handleUploadSubmit = async () => {
+    setIsUploadAttempted(true);
+    setApiError("");
 
-  const errors = {
-    title: !uploadForm.title.trim(),
-    description: !uploadForm.description.trim(),
-    file: !uploadForm.file,
-  };
-
-  setUploadErrors(errors);
-
-  const hasErrors = Object.values(errors).some(Boolean);
-  if (hasErrors) return;
-
-  setIsUploading(true);
-  try {
-    const durationSeconds = await getVideoDurationSecondsFromFile(uploadForm.file);
-
-    const serverUrl = await uploadVideoToS3(uploadForm.file);
-    const normalized = normalizeVideoUrlForApi(serverUrl);
-
-    if (!normalized) {
-      throw new Error("Video upload did not return a valid URL");
-    }
-    const resolvedHttpUrl = /^https?:\/\//i.test(normalized) ? normalized : await resolveS3HttpUrl(normalized);
-    const videoUrlToSend = resolvedHttpUrl || normalized;
-
-    const bodyParams = {
-      title: String(uploadForm.title || "").trim(),
-      description: String(uploadForm.description || "").trim(),
-      videoUrl: videoUrlToSend,
-      thumbnailUrl: "",
-      durationSeconds,
-      tags: [],
-      isActive: true,
+    const errors = {
+      title: !uploadForm.title.trim(),
+      description: !uploadForm.description.trim(),
+      file: !uploadForm.file,
     };
 
-    await new Promise((resolve, reject) => {
-      callApi({
-        method: Method.POST,
-        endPoint: api.mindfulnessVideos,
-        bodyParams,
-        onSuccess: (res) => resolve(res),
-        onError: (err) =>
-          reject(new Error(err?.message || "Failed to save video. Please try again.")),
-      });
-    });
+    setUploadErrors(errors);
 
-    setUploadForm({ title: "", description: "", file: null, fileName: "" });
-    setUploadErrors({ title: false, description: false, file: false });
-    setIsUploadAttempted(false);
-    setShowUploadModal(false);
-    void loadVideos();
-  } catch (e) {
-    setApiError(e?.message || "Failed to upload video. Please try again.");
-  } finally {
-    setIsUploading(false);
-  }
-};
+    const hasErrors = Object.values(errors).some(Boolean);
+    if (hasErrors) return;
+
+    setIsUploading(true);
+    try {
+      const durationSeconds = await getVideoDurationSecondsFromFile(uploadForm.file);
+
+      const serverUrl = await uploadVideoToS3(uploadForm.file);
+      const normalized = normalizeVideoUrlForApi(serverUrl);
+
+      if (!normalized) {
+        throw new Error("Video upload did not return a valid URL");
+      }
+      const resolvedHttpUrl = /^https?:\/\//i.test(normalized) ? normalized : await resolveS3HttpUrl(normalized);
+      const videoUrlToSend = resolvedHttpUrl || normalized;
+
+      const bodyParams = {
+        title: String(uploadForm.title || "").trim(),
+        description: String(uploadForm.description || "").trim(),
+        videoUrl: videoUrlToSend,
+        thumbnailUrl: "",
+        durationSeconds,
+        tags: [],
+        isActive: true,
+      };
+
+      await new Promise((resolve, reject) => {
+        callApi({
+          method: Method.POST,
+          endPoint: api.mindfulnessVideos,
+          bodyParams,
+          onSuccess: (res) => resolve(res),
+          onError: (err) =>
+            reject(new Error(err?.message || "Failed to save video. Please try again.")),
+        });
+      });
+
+      setUploadForm({ title: "", description: "", file: null, fileName: "" });
+      setUploadErrors({ title: false, description: false, file: false });
+      setIsUploadAttempted(false);
+      closeUploadModal();
+      void loadVideos();
+    } catch (e) {
+      setApiError(e?.message || "Failed to upload video. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
 
 
@@ -574,6 +587,7 @@ const handleUploadSubmit = async () => {
       file: null,
       fileName: video.fileName || ""
     });
+    setApiError("");
     setShowEditModal(true);
   };
 
@@ -656,7 +670,7 @@ const handleUploadSubmit = async () => {
         });
       });
 
-      setShowEditModal(false);
+      closeEditModal();
       setShowVideoDetail(false);
       setSelectedVideo(null);
       void loadVideos();
@@ -704,24 +718,25 @@ const handleUploadSubmit = async () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-4">
-          {showVideoDetail && (
+          {/* {showVideoDetail && (
             <button
               onClick={handleBackToLibrary}
               className="text-gray-600 hover:text-gray-800 transition"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-          )}
+          )} */}
           <h2 className="text-xl font-semibold text-gray-800">Video Library</h2>
         </div>
         {!showVideoDetail && (
-          <button 
+          <button
             onClick={() => {
-    setUploadForm({ title: "", description: "", file: null, fileName: "" });
-    setUploadErrors({ title: false, description: false, file: false });
-    setIsUploadAttempted(false);
-    setShowUploadModal(true);
-  }}
+              setUploadForm({ title: "", description: "", file: null, fileName: "" });
+              setUploadErrors({ title: false, description: false, file: false });
+              setIsUploadAttempted(false);
+              setApiError("");
+              setShowUploadModal(true);
+            }}
             className="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition flex items-center gap-2"
           >
             Upload Video
@@ -733,50 +748,52 @@ const handleUploadSubmit = async () => {
       {showVideoDetail && selectedVideo ? (
         // Video Detail View
         <div>
-        <div
-      className="relative mb-6"
-    >
-      {selectedVideo.fileUrl ? (
-        <video
-          src={selectedVideo.fileUrl}
-          controls
-          playsInline
-          preload="metadata"
-          onError={() => setPlaybackError("Video failed to load. Please check the URL or permissions.")}
-          className="w-full h-60 object-contain rounded-lg shadow-lg bg-black"
-        />
-      ) : (
-        <div className="w-full h-60 rounded-lg shadow-lg bg-gray-100 flex items-center justify-center px-4 text-center text-sm text-gray-600">
-          Video URL not available for preview
-        </div>
-      )}
-    </div>
-        {isResolvingPlayback ? (
-          <div className="text-gray-600 text-sm mb-4">Loading video...</div>
-        ) : playbackError ? (
-          <div className="text-red-500 text-sm mb-4">{playbackError}</div>
-        ) : null}
+          <div
+            className="relative mb-6"
+          >
+            {selectedVideo.fileUrl ? (
+              <video
+                src={selectedVideo.fileUrl}
+                controls
+                playsInline
+                preload="metadata"
+                onError={() => setPlaybackError("Video failed to load. Please check the URL or permissions.")}
+                className="w-full h-60 object-contain rounded-lg shadow-lg bg-black"
+              />
+            ) : (
+              <div className="w-full h-60 rounded-lg shadow-lg bg-gray-100 flex items-center justify-center px-4 text-center text-sm text-gray-600">
+                Video URL not available for preview
+              </div>
+            )}
+          </div>
+          {isResolvingPlayback ? (
+            <div className="text-gray-600 text-sm mb-4">Loading video...</div>
+          ) : playbackError ? (
+            <div className="text-red-500 text-sm mb-4">{playbackError}</div>
+          ) : null}
 
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-1">Title</h3>
-            <p className="text-gray-600">{selectedVideo.title}</p>
+            <p className="text-gray-600 whitespace-pre-wrap break-all max-w-full">{selectedVideo.title}</p>
           </div>
-          
+
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-800 mb-1">Description</h3>
-            <p className="text-gray-600 leading-relaxed">{selectedVideo.description}</p>
+            <p className="text-gray-600 leading-relaxed whitespace-pre-wrap break-all max-w-full">{selectedVideo.description}</p>
           </div>
-          
-          <div className="flex gap-3 max-w-80">
+
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-4 mt-8">
             <button
               onClick={() => handleDelete(selectedVideo)}
-              className="flex-1 border border-teal-600 text-teal-600 px-4 py-2 rounded-lg hover:bg-teal-50 transition"
+              style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
+              className="border border-teal-600 text-teal-600 hover:bg-teal-50 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
             >
               Delete
             </button>
             <button
               onClick={() => handleEdit(selectedVideo)}
-              className="flex-1 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition"
+              style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
+              className="bg-teal-600 text-white hover:bg-teal-700 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
             >
               Edit
             </button>
@@ -843,76 +860,88 @@ const handleUploadSubmit = async () => {
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4 z-50"
-        onClick={() => setShowUploadModal(false)}>
+          onClick={closeUploadModal}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md"
-          onClick={(e) => e.stopPropagation()}>
+            onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Upload Video</h3>
               <button
-                onClick={() => setShowUploadModal(false)}
+                onClick={closeUploadModal}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X className="w-5 h-5" />
-                
+
               </button>
             </div>
-            
-        <div className="space-y-4">
-  {/* Title */}
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-    <input
-      type="text"
-      placeholder="Add Title"
-      value={uploadForm.title}
-      onChange={(e) => handleUploadChange('title', e.target.value)}
-      className={`w-full px-3 py-2 border ${isUploadAttempted && uploadErrors.title ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`}
-    />
-    {isUploadAttempted && uploadErrors.title && (
-      <p className="text-red-500 text-sm mt-1">Please enter a title</p>
-    )}
-  </div>
 
-  {/* Description */}
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-    <textarea
-      placeholder="Add Description"
-      rows={4}
-      value={uploadForm.description}
-      onChange={(e) => handleUploadChange('description', e.target.value)}
-      className={`w-full px-3 py-2 border ${isUploadAttempted && uploadErrors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none`}
-    />
-    {isUploadAttempted && uploadErrors.description && (
-      <p className="text-red-500 text-sm mt-1">Please enter a description</p>
-    )}
-  </div>
+            <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Add Title"
+                    value={uploadForm.title}
+                    maxLength={60}
+                    onChange={(e) => handleUploadChange('title', e.target.value)}
+                    className={`w-full px-3 py-2 border ${isUploadAttempted && uploadErrors.title ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`}
+                  />
+                  <div className="text-right text-xs text-gray-400 mt-1">
+                    {uploadForm.title.length}/60
+                  </div>
+                </div>
+                {isUploadAttempted && uploadErrors.title && (
+                  <p className="text-red-500 text-sm mt-1">Please enter a title</p>
+                )}
+              </div>
 
-  {/* File Upload */}
-  <div>
-    <input
-      type="file"
-      accept="video/*"
-      onChange={handleFileUpload}
-      className="hidden"
-      id="video-upload"
-    />
-    <label
-      htmlFor="video-upload"
-      className={`w-full border-2 ${isUploadAttempted && !uploadForm.fileName && uploadErrors.file ? 'border-red-500' : 'border-dashed border-teal-300'} text-teal-600 px-4 py-3 rounded-lg hover:bg-teal-50 transition cursor-pointer flex items-center justify-center gap-2`}
-    >
-      <Upload className="w-5 h-5" />
-      {uploadForm.fileName || "Upload File"}
-    </label>
-    {isUploadAttempted && !uploadForm.fileName && uploadErrors.file && (
-      <p className="text-red-500 text-sm mt-1">Please upload a video file</p>
-    )}
-  </div>
-</div>
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <div className="relative">
+                  <textarea
+                    placeholder="Add Description"
+                    rows={4}
+                    value={uploadForm.description}
+                    maxLength={150}
+                    onChange={(e) => handleUploadChange('description', e.target.value)}
+                    className={`w-full px-3 py-2 border ${isUploadAttempted && uploadErrors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none`}
+                  />
+                  <div className="text-right text-xs text-gray-400 mt-1">
+                    {uploadForm.description.length}/150
+                  </div>
+                </div>
+                {isUploadAttempted && uploadErrors.description && (
+                  <p className="text-red-500 text-sm mt-1">Please enter a description</p>
+                )}
+              </div>
+
+              {/* File Upload */}
+              <div>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="video-upload"
+                />
+                <label
+                  htmlFor="video-upload"
+                  className={`w-full border-2 ${isUploadAttempted && !uploadForm.fileName && uploadErrors.file ? 'border-red-500' : 'border-dashed border-teal-300'} text-teal-600 px-4 py-3 rounded-lg hover:bg-teal-50 transition cursor-pointer flex items-center justify-center gap-2`}
+                >
+                  <Upload className="w-5 h-5" />
+                  {uploadForm.fileName || "Upload File"}
+                </label>
+                {isUploadAttempted && !uploadForm.fileName && uploadErrors.file && (
+                  <p className="text-red-500 text-sm mt-1">Please upload a video file</p>
+                )}
+              </div>
+            </div>
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setShowUploadModal(false)}
+                onClick={closeUploadModal}
                 className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
               >
                 Cancel
@@ -924,7 +953,7 @@ const handleUploadSubmit = async () => {
                 {isUploading ? "Uploading..." : "Upload Video"}
               </button>
             </div>
-            {apiError ? <div className="text-red-500 text-sm mt-3">{apiError}</div> : null}
+
           </div>
         </div>
       )}
@@ -932,67 +961,79 @@ const handleUploadSubmit = async () => {
       {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4 z-50"
-        onClick={() => setShowEditModal(false)}>
+          onClick={closeEditModal}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md"
             onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Edit Video</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
+              {/* <h3 className="text-[16px] font-semibold font-['Nunito'] leading-[20px]">Edit Video</h3> */}
+              {/* <button
+                onClick={closeEditModal}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </button> */}
             </div>
-            
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                <input
-                  type="text"
-                  placeholder="Add Title"
-                  value={editForm.title}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
+                <label className="block text-[16px] font-semibold font-['Nunito'] leading-[20px] text-gray-700 mb-2">Title</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Add Title"
+                    value={editForm.title}
+                    maxLength={60}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-[14px] font-normal font-['Nunito'] leading-[20px] text-[#999CA0]"
+                  />
+                  <div className="text-right text-xs text-gray-400 mt-1">
+                    {editForm.title.length}/60
+                  </div>
+                </div>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  placeholder="Add Description"
-                  rows={4}
-                  value={editForm.description}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
-                />
+                <label className="block text-[16px] font-semibold font-['Nunito'] leading-[20px] text-gray-700 mb-2">Description</label>
+                <div className="relative">
+                  <textarea
+                    placeholder="Add Description"
+                    rows={4}
+                    value={editForm.description}
+                    maxLength={150}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none text-[14px] font-normal font-['Nunito'] leading-[20px] text-[#999CA0]"
+                  />
+                  <div className="text-right text-xs text-gray-400 mt-1">
+                    {editForm.description.length}/150
+                  </div>
+                </div>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Change Video (Optional)</label>
+                {/* <label className="block text-[16px] font-semibold font-['Nunito'] leading-[20px] text-gray-700 mb-2">Change Video </label>
                 <input
                   type="file"
                   accept="video/*"
                   onChange={handleEditFileUpload}
                   className="hidden"
                   id="edit-video-upload"
-                />
-                <label
+                /> */}
+                {/* <label
                   htmlFor="edit-video-upload"
-                  className="w-full border-2 border-dashed border-teal-300 text-teal-600 px-4 py-3 rounded-lg hover:bg-teal-50 transition cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full border-2 border-dashed border-teal-300 text-teal-600 px-4 py-3 rounded-lg hover:bg-teal-50 transition cursor-pointer flex items-center justify-center gap-2 text-[14px] font-normal font-['Nunito']"
                 >
                   <Upload className="w-5 h-5" />
                   {editForm.file ? editForm.fileName : (editForm.fileName ? editForm.fileName : "Upload New Video")}
-                </label>
-                {editForm.fileName && !editForm.file && (
-                  <p className="text-xs text-gray-500 mt-1">Current: {editForm.fileName}</p>
-                )}
+                </label> */}
+                {/* {editForm.fileName && !editForm.file && (
+                  <p className="text-[14px] font-normal font-['Nunito'] leading-[20px] text-[#999CA0] mt-1">Current: {editForm.fileName}</p>
+                )} */}
               </div>
             </div>
-            
+
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setShowEditModal(false)}
+                onClick={closeEditModal}
                 className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
               >
                 Cancel
@@ -1004,7 +1045,7 @@ const handleUploadSubmit = async () => {
                 {isEditUploading ? "Uploading..." : "Save"}
               </button>
             </div>
-            {apiError ? <div className="text-red-500 text-sm mt-3">{apiError}</div> : null}
+
           </div>
         </div>
       )}
@@ -1012,17 +1053,17 @@ const handleUploadSubmit = async () => {
       {/* Delete Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center p-4 z-50"
-         onClick={() => setShowDeleteModal(false)}>
+          onClick={() => setShowDeleteModal(false)}>
           <div className="bg-white rounded-lg p-6 w-full max-w-sm text-center"
             onClick={(e) => e.stopPropagation()}>
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-8 h-8 text-gray-600" />
             </div>
-            
+
             <h3 className="text-lg font-semibold text-gray-800 mb-2">
               Are You Sure You Want To Delete This
             </h3>
-            
+
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowDeleteModal(false)}
@@ -1034,7 +1075,7 @@ const handleUploadSubmit = async () => {
                 onClick={confirmDelete}
                 className="flex-1 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition"
               >
-               Delete
+                Delete
               </button>
             </div>
           </div>

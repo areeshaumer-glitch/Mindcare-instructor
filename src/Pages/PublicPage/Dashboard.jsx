@@ -217,7 +217,7 @@ const Dashboard = () => {
       };
     });
   }, [cleanUrl, workouts]);
- const videoCards = useMemo(() => {
+  const videoCards = useMemo(() => {
     return videos.map((v) => {
       const thumb = v.thumbnailUrl || '';
       return {
@@ -226,13 +226,11 @@ const Dashboard = () => {
       };
     });
   }, [videos]);
- return (
+  return (
     <div className="w-full">
       <h2 className="text-xl font-semibold mb-4">Dashboard</h2>
 
-      {!!apiError && (
-        <div className="mb-4 text-sm text-red-600">{apiError}</div>
-      )}
+
 
       {isLoadingWorkouts ? (
         <div className="p-6 text-center text-gray-600">Loading workouts...</div>

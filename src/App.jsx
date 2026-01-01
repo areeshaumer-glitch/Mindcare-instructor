@@ -15,7 +15,7 @@ import {
   MyProfile
 } from "./Pages/PagesList";
 
-import { MdError } from "react-icons/md";
+import { MdError, MdCheckCircle } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
 
 function ToastHost() {
@@ -42,7 +42,7 @@ function ToastHost() {
 
   return (
     <div className="fixed top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
-        <style>{`
+      <style>{`
           @keyframes shrink {
             from { width: 100%; }
             to { width: 0%; }
@@ -55,11 +55,10 @@ function ToastHost() {
         >
           <div className="flex items-center p-4 gap-3">
             {/* Icon */}
-            <div className="text-red-500 text-2xl shrink-0">
-               {/* Currently only handling error style as per request image, but keeping type check if needed later or generic */}
-               {t.type === 'success' ? <div className="w-6 h-6 rounded-full bg-green-500" /> : <MdError />}
+            <div className={`text-2xl shrink-0 ${t.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+              {t.type === 'success' ? <MdCheckCircle /> : <MdError />}
             </div>
-            
+
             {/* Message */}
             <div className="text-gray-600 font-medium text-sm flex-1 leading-tight">
               {t.message}
@@ -75,13 +74,13 @@ function ToastHost() {
           </div>
 
           {/* Progress Bar */}
-          <div className="h-1.5 w-full bg-red-100">
-             <div
-                className="h-full bg-red-400 origin-left"
-                style={{
-                  animation: 'shrink 4000ms linear forwards'
-                }}
-             />
+          <div className={`h-1.5 w-full ${t.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+            <div
+              className={`h-full origin-left ${t.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}
+              style={{
+                animation: 'shrink 4000ms linear forwards'
+              }}
+            />
           </div>
         </div>
       ))}
@@ -103,9 +102,9 @@ export default function App() {
 
         {/* Protected Home Layout with nested routes */}
         <Route path="home" element={<Home />} >
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-             <Route path="my-profile" element={<MyProfile />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="my-profile" element={<MyProfile />} />
           <Route path="create-workout" element={<CreateWorkout />} />
           <Route path="video-library" element={<VideoLibrary />} />
           <Route path="track-attendance" element={<TrackAttendence />} />

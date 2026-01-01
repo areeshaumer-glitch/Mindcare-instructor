@@ -146,7 +146,6 @@ const EditProfile = () => {
     setSuccessMessage('');
     setSelectedFile(file);
     setImagePreviewUrl(URL.createObjectURL(file));
-    void uploadAndUpdateProfileImage(file);
   };
 
   const handleButtonClick = () => {
@@ -197,91 +196,7 @@ const EditProfile = () => {
     return 'Profile.JPG';
   }, [imagePreviewUrl, selectedFile?.name]);
 
-  async function uploadAndUpdateProfileImage(file) {
-    setErrorMessage('');
-    setSuccessMessage('');
 
-    const trimmedName = String(
-      fullName ||
-      profile?.name ||
-      profile?.user?.name ||
-      userData?.profile?.fullName ||
-      userData?.phone ||
-      '',
-    ).trim();
-
-    if (!trimmedName) {
-      setErrorMessage('Full name is required');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const uploaded = await uploadSelectedImage(file);
-      const normalized = normalizeUploadedValue(String(uploaded || ''));
-
-      if (!normalized) {
-        setErrorMessage('Failed to upload image. Please try again.');
-        return;
-      }
-
-      const resolvedHttpUrl = await resolveS3HttpUrl(normalized);
-      const profileImage = resolvedHttpUrl || normalized;
-
-      await callApi({
-        method: Method.PUT,
-        endPoint: api.instructorProfile,
-        bodyParams: {
-          name: trimmedName,
-          profileImage,
-        },
-        onSuccess: (res) => {
-          const updated = res?.data?.data || res?.data || null;
-          if (updated) {
-            setProfile(updated);
-            if (updated?.name) setFullName(updated.name);
-            if (updated?.profileImage) setImagePreviewUrl(updated.profileImage);
-          } else {
-            setProfile((prev) => ({
-              ...(prev || {}),
-              name: trimmedName,
-              profileImage,
-            }));
-            setImagePreviewUrl(profileImage);
-          }
-
-          const currentProfile = userData?.profile || {};
-          updateUserData({
-            profile: {
-              ...currentProfile,
-              fullName: trimmedName,
-            },
-          });
-
-          setSelectedFile(null);
-          setSuccessMessage(res?.message || 'Profile updated');
-          bumpProfileVersion();
-        },
-        onError: (err) => {
-          const message =
-            err?.message ||
-            err?.data?.message ||
-            err?.response?.data?.message ||
-            'Failed to update profile';
-          setErrorMessage(message);
-        },
-      });
-    } catch (err) {
-      const message =
-        err?.message ||
-        err?.data?.message ||
-        err?.response?.data?.message ||
-        'Failed to update profile';
-      setErrorMessage(message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
 
   const handleSaveChanges = async () => {
     setErrorMessage('');
@@ -361,8 +276,8 @@ const EditProfile = () => {
   };
 
   return (
-    <div className="flex items-center justify-center px-4">
-      <div className="space-y-6 w-full max-w-md">
+    <div className="w-full p-8">
+      <div className="space-y-6 w-full max-w-2xl">
 
         {/* Hidden file input */}
         <input
@@ -374,32 +289,38 @@ const EditProfile = () => {
         />
 
         {/* Profile header row */}
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between w-full max-w-[600px]">
+          <div className="flex items-center gap-5">
             <button onClick={handleButtonClick} className="hover:opacity-80 transition-opacity">
               {imagePreviewUrl ? (
                 <img
                   src={withCacheBuster(imagePreviewUrl)}
                   alt="Profile"
-                  className="w-20 h-20 rounded-full object-cover border-2 border-teal-700"
+                  className="w-24 h-24 rounded-full object-cover border-2"
+                  style={{ borderColor: "#008080" }}
                 />
               ) : (
-                <img
-                  src={images.camera}
-                  alt="Profile"
-                  className="w-20 h-20 rounded-full object-cover"
-                />
+                <div
+                  className="w-24 h-24 rounded-full flex items-center justify-center bg-purple-100 overflow-hidden"
+                >
+                  <img
+                    src={images.camera}
+                    alt="Profile"
+                    className="w-12 h-12 object-contain opacity-50"
+                  />
+                </div>
               )}
             </button>
-            {/* <div className="flex flex-col">
-              <h3 className="font-semibold text-lg">{displayName}</h3>
-              <h3 className="font-semibold text-lg text-[#0E4E95]">{displayFileName}</h3>
-            </div> */}
+            <div className="flex flex-col">
+              <h3 className="font-semibold text-2xl text-gray-800">{displayName}</h3>
+
+            </div>
           </div>
 
           <button
             onClick={handleButtonClick}
-            className="text-black border border-[#0E4E95] px-4 rounded-2xl py-2 font-medium hover:underline"
+            className="px-6 py-2 rounded-xl font-medium transition-all hover:bg-gray-50 bg-white"
+            style={{ border: "1px solid #0E4E95", color: "#333" }}
             disabled={isLoading || isSaving}
           >
             Update Photo
@@ -407,33 +328,38 @@ const EditProfile = () => {
         </div>
 
         {/* Full Name Input */}
-        <div className="flex flex-col w-full">
-          <label className="block text-sm font-semibold mb-1">Full Name *</label>
-          <input
-            type="text"
-            placeholder="Enter full name"
-            className="w-full border border-[#9499A1] rounded-2xl px-4 py-3 focus:outline-none focus:border-teal-600"
-            value={fullName}
-            onChange={(e) => {
-              setSuccessMessage('');
-              setErrorMessage('');
-              setFullName(e.target.value);
-            }}
-            disabled={isLoading || isSaving}
-          />
+        <div className="space-y-2">
+          <label className="block text-lg font-semibold text-gray-800">Fullname *</label>
+          <div style={{ width: '390px', height: '40px' }}>
+            <input
+              type="text"
+              placeholder="Enter full name"
+              className="w-full h-full border border-gray-300 rounded-xl px-4 focus:outline-none transition-all"
+              value={fullName}
+              onChange={(e) => {
+                setSuccessMessage('');
+                setErrorMessage('');
+                setFullName(e.target.value);
+              }}
+              onFocus={(e) => e.target.style.borderColor = "#008080"}
+              onBlur={(e) => e.target.style.borderColor = "#D1D5DB"}
+              disabled={isLoading || isSaving}
+            />
+          </div>
         </div>
 
-        {!!errorMessage && (
-          <div className="text-sm text-red-600">{errorMessage}</div>
-        )}
-        {!!successMessage && (
-          <div className="text-sm text-green-700">{successMessage}</div>
-        )}
+
 
         {/* Save Changes button at the right end */}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-0">
           <button
-            className="bg-teal-700 text-white px-[60px] py-2 rounded-2xl hover:bg-teal-800 transition-colors disabled:opacity-60"
+            className="text-white font-semibold transition-all hover:opacity-90 disabled:opacity-50 shadow-md"
+            style={{
+              backgroundColor: "#008080",
+              width: "332px",
+              height: "50px",
+              borderRadius: "12px"
+            }}
             onClick={handleSaveChanges}
             disabled={isLoading || isSaving}
           >

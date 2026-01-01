@@ -6,7 +6,7 @@ import AuthLayout from '../../layout/AuthLayout';
 import PrimaryButton from '../../components/PrimaryButton';
 import CustomInput from '../../components/CustomInput';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Method, callApi } from '../../network/NetworkManager';
+import { Method, callApi, emitToast } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
 
 const CreatePasswordSchema = Yup.object().shape({
@@ -44,7 +44,7 @@ const CreatePasswordPage = () => {
           setApiError('');
 
           if (!email) {
-            setApiError('Email is missing. Please restart the reset flow.');
+            emitToast('Email is missing. Please restart the reset flow.', 'error');
             setSubmitting(false);
             return;
           }
@@ -70,9 +70,7 @@ const CreatePasswordPage = () => {
             <CustomInput name="password" type="password" placeholder="New password" withToggle />
             <CustomInput name="confirmPassword" type="password" placeholder="Confirm new password" withToggle />
 
-            {apiError ? (
-              <div className="text-red-500 text-sm">{apiError}</div>
-            ) : null}
+
             <PrimaryButton type="submit" className={isSubmitting ? 'opacity-70 pointer-events-none' : ''}>
               RESET PASSWORD
             </PrimaryButton>

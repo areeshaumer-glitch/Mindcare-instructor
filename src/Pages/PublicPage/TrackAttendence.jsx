@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Method, callApi } from '../../network/NetworkManager';
+import { Method, callApi, emitToast } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
 import { useAuthStore } from '../../store/authSlice';
 
@@ -255,12 +255,12 @@ const TrackAttendence = () => {
 
     const comment = String(feedbackComment || '').trim();
     if (!comment) {
-      setFeedbackError('Please add feedback.');
+      emitToast('Please add feedback.', 'error');
       return;
     }
 
     if (!String(instructorProfileId || '').trim()) {
-      setFeedbackError('Unable to submit feedback. Missing instructor profile id.');
+      emitToast('Unable to submit feedback. Missing instructor profile id.', 'error');
       return;
     }
 
@@ -275,7 +275,7 @@ const TrackAttendence = () => {
 
       const appointmentIdToSend = String(appointmentId || '').trim();
       if (!appointmentIdToSend) {
-        setFeedbackError('Appointment not found.');
+        emitToast('Appointment not found.', 'error');
         return;
       }
 
@@ -299,7 +299,7 @@ const TrackAttendence = () => {
 
       closeFeedback();
     } catch (e) {
-      setFeedbackError(e?.message || 'Failed to submit feedback. Please try again.');
+      emitToast(e?.message || 'Failed to submit feedback. Please try again.', 'error');
     } finally {
       setIsSendingFeedback(false);
     }
@@ -315,7 +315,7 @@ const TrackAttendence = () => {
         <div className="w-full mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h1 className="text-2xl md:text- font-semibold text-teal-600">Track Attendance </h1>
+            <h1 className="text-2xl md:text- font-semibold" style={{ color: "#008080" }}>Track Attendance </h1>
 
             {/* Date Selector */}
             <div className="relative">
@@ -372,7 +372,7 @@ const TrackAttendence = () => {
                       <button
                         key={index}
                         onClick={() => handleDateSelect(day)}
-                        className={`h-8 text-sm rounded hover:bg-teal-100 transition-colors ${day === selectedDate.getDate() ? 'bg-teal-600 text-white hover:bg-teal-700' :
+                        className={`h-8 text-sm rounded hover:bg-[#00808020] transition-colors ${day === selectedDate.getDate() ? 'bg-[#008080] text-white hover:opacity-90' :
                           day ? 'text-gray-700 hover:bg-gray-100' : ''
                           }`}
                         disabled={!day}
@@ -390,11 +390,11 @@ const TrackAttendence = () => {
           <div className="bg-white">
             <div className="overflow-x-auto">
               <div className="min-w-[760px]">
-                <div className="bg-teal-600 text-white rounded-xl">
-                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg">
+                <div className="text-white rounded-xl" style={{ backgroundColor: "#008080" }}>
+                  <div className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg">
                     <div className="text-left">Name</div>
-                    <div className="text-center">Absent</div>
-                    <div className="text-center">Attend from Gym</div>
+                    <div className="text-left">Absent</div>
+                    <div className="text-left">Attend from Gym</div>
                     <div className="text-center whitespace-nowrap">Attend from home</div>
                     <div />
                   </div>
@@ -407,7 +407,7 @@ const TrackAttendence = () => {
                     <div className="p-6 text-center text-gray-600">No attendance records found.</div>
                   ) : (
                     rows.map((row) => (
-                      <div key={row.key} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 p-6 items-center">
+                      <div key={row.key} className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_1fr] gap-4 p-6 items-center">
                         <div className="text-left">
                           <div className="flex items-center gap-3 min-w-0">
                             {row?.avatar ? (
@@ -421,16 +421,23 @@ const TrackAttendence = () => {
                                 {String(row?.name || 'N').trim().charAt(0).toUpperCase()}
                               </div>
                             )}
-                            <p className="font-medium text-gray-700 text-lg truncate">{row?.name || 'Name Here'}</p>
+                            <p
+                              className="font-medium text-gray-700 text-lg truncate"
+                              title={row?.name || ''}
+                            >
+                              {row?.name && row.name.length > 15
+                                ? row.name.substring(0, 15) + "..."
+                                : (row?.name || 'Name Here')}
+                            </p>
                           </div>
                         </div>
 
-                        <div className="text-center">
-                          <span className="text-gray-600 text-lg">{row.absentPct}%</span>
+                        <div className="text-left">
+                          <span className="text-gray-600 text-lg ml-2">{row.absentPct}%</span>
                         </div>
 
-                        <div className="text-center">
-                          <span className="text-gray-600 text-lg">{row.gymPct}%</span>
+                        <div className="text-left">
+                          <span className="text-gray-600 text-lg ml-6">{row.gymPct}%</span>
                         </div>
 
                         <div className="text-center">
@@ -439,7 +446,7 @@ const TrackAttendence = () => {
 
                         <div className="text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => openFeedback(row)} className="text-teal-600 text-sm hover:underline">
+                            <button onClick={() => openFeedback(row)} className="text-sm hover:underline" style={{ color: "#008080" }}>
                               Feedback
                             </button>
                             <button
@@ -452,7 +459,8 @@ const TrackAttendence = () => {
                                   },
                                 })
                               }
-                              className="text-teal-600 text-sm hover:underline"
+                              className="text-sm hover:underline"
+                              style={{ color: "#008080" }}
                             >
                               Old History
                             </button>
@@ -487,16 +495,15 @@ const TrackAttendence = () => {
                 onChange={(e) => setFeedbackComment(e.target.value)}
               />
 
-              {feedbackError ? (
-                <div className="text-sm text-red-600 mb-4">{feedbackError}</div>
-              ) : null}
+
 
               <button
                 type="button"
                 onClick={handleSendFeedback}
                 disabled={isSendingFeedback}
-                className={`block ml-auto w-40 px-[56px] py-2 rounded-full transition ${isSendingFeedback ? 'bg-teal-400 text-white cursor-not-allowed' : 'bg-teal-600 text-white hover:bg-teal-700'
+                className={`block ml-auto w-40 px-[56px] py-2 rounded-full transition ${isSendingFeedback ? 'opacity-50 text-white cursor-not-allowed' : 'text-white hover:opacity-90'
                   }`}
+                style={{ backgroundColor: "#008080" }}
               >
                 {isSendingFeedback ? 'Sending...' : 'Send'}
               </button>

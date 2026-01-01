@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react'; 
-import { Plus, Minus, X, Check, Trash2, Edit3, RotateCcw } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Plus, Minus, X, Check, Trash2, Edit3, RotateCcw, ArrowLeft } from 'lucide-react';
 import images from '../../assets/Images';
 import { Method, callApi } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
@@ -94,7 +94,7 @@ const CreateWorkout = () => {
       document.documentElement.style.overflow = prevHtmlOverflow;
     };
   }, [currentModal, showDeleteModal]);
-  
+
   const [createForm, setCreateForm] = useState({
     name: '',
     targetArea: '',
@@ -106,28 +106,28 @@ const CreateWorkout = () => {
 
   const [exerciseForm, setExerciseForm] = useState({
     selectedDays: [1],
-   exercises: [
-    {
-      id: 1,
-      name: 'Exercise 1',
-      image: images.excer,
-      sets: [
-        {
-          id: 1,
-          location: 'At Gym',
-          exercise: 'Chest Press Machine',
-          reps: ['', '', ''], // <-- multiple reps per set
-        },
-        {
-          id: 2,
-          location: 'At Home',
-          exercise: 'Push Ups',
-          reps: ['', '', ''],
-        },
-      ],
-    },
-    // more exercises...
-  ],
+    exercises: [
+      {
+        id: 1,
+        name: 'Exercise 1',
+        image: images.excer,
+        sets: [
+          {
+            id: 1,
+            location: 'At Gym',
+            exercise: 'Chest Press Machine',
+            reps: ['', '', ''], // <-- multiple reps per set
+          },
+          {
+            id: 2,
+            location: 'At Home',
+            exercise: 'Push Ups',
+            reps: ['', '', ''],
+          },
+        ],
+      },
+      // more exercises...
+    ],
   });
   const [exerciseErrors, setExerciseErrors] = useState({});
 
@@ -164,17 +164,17 @@ const CreateWorkout = () => {
   const addExerciseSet = (exerciseId) => {
     setExerciseForm(prev => ({
       ...prev,
-      exercises: prev.exercises.map(ex => 
-        ex.id === exerciseId 
-          ? { 
-              ...ex, 
-              sets: [...ex.sets, { 
-                id: Date.now(), 
-                location: 'At Gym', 
-                exercise: 'New Exercise', 
-                reps: '' 
-              }] 
-            }
+      exercises: prev.exercises.map(ex =>
+        ex.id === exerciseId
+          ? {
+            ...ex,
+            sets: [...ex.sets, {
+              id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+              location: 'At Gym',
+              exercise: 'New Exercise',
+              reps: ['', '', '']
+            }]
+          }
           : ex
       )
     }));
@@ -183,8 +183,8 @@ const CreateWorkout = () => {
   const removeExerciseSet = (exerciseId, setId) => {
     setExerciseForm(prev => ({
       ...prev,
-      exercises: prev.exercises.map(ex => 
-        ex.id === exerciseId 
+      exercises: prev.exercises.map(ex =>
+        ex.id === exerciseId
           ? { ...ex, sets: ex.sets.filter(set => set.id !== setId) }
           : ex
       )
@@ -193,26 +193,24 @@ const CreateWorkout = () => {
 
   const addExercise = () => {
     setExerciseForm((prev) => {
-      const nextId = prev.exercises.length
-        ? Math.max(...prev.exercises.map((e) => e.id)) + 1
-        : 1;
+      const nextId = prev.exercises.length + 1;
       return {
         ...prev,
         exercises: [
           ...prev.exercises,
           {
-            id: nextId,
+            id: `ex-${Date.now()}-${nextId}-${Math.random().toString(36).substr(2, 5)}`,
             name: `Exercise ${nextId}`,
             image: images.excer,
             sets: [
               {
-                id: Date.now(),
+                id: `gym-${Date.now()}-${nextId}-${Math.random().toString(36).substr(2, 5)}`,
                 location: 'At Gym',
                 exercise: 'Chest Press Machine',
                 reps: ['', '', ''],
               },
               {
-                id: Date.now() + 1,
+                id: `home-${Date.now()}-${nextId}-${Math.random().toString(36).substr(2, 5)}`,
                 location: 'At Home',
                 exercise: 'Push Ups',
                 reps: ['', '', ''],
@@ -224,6 +222,13 @@ const CreateWorkout = () => {
     });
   };
 
+  const removeExercise = (exerciseId) => {
+    setExerciseForm((prev) => ({
+      ...prev,
+      exercises: prev.exercises.filter((ex) => ex.id !== exerciseId),
+    }));
+  };
+
   const regenerateExercise = (exerciseId) => {
     setExerciseForm((prev) => ({
       ...prev,
@@ -231,18 +236,18 @@ const CreateWorkout = () => {
         exercise.id !== exerciseId
           ? exercise
           : {
-              ...exercise,
-              name: (() => {
-                const match = String(exercise.name || "").match(/\d+/);
-                const current = match ? Number(match[0]) : Number(exercise.id) || 1;
-                const next = Number.isFinite(current) ? current + 1 : 2;
-                return `Exercise ${next}`;
-              })(),
-              sets: exercise.sets.map((set) => ({
-                ...set,
-                reps: Array.isArray(set.reps) ? set.reps.map(() => '') : ['', '', ''],
-              })),
-            }
+            ...exercise,
+            name: (() => {
+              const match = String(exercise.name || "").match(/\d+/);
+              const current = match ? Number(match[0]) : Number(exercise.id) || 1;
+              const next = Number.isFinite(current) ? current + 1 : 2;
+              return `Exercise ${next}`;
+            })(),
+            sets: exercise.sets.map((set) => ({
+              ...set,
+              reps: Array.isArray(set.reps) ? set.reps.map(() => '') : ['', '', ''],
+            })),
+          }
       ),
     }));
   };
@@ -254,14 +259,14 @@ const CreateWorkout = () => {
         exercise.id !== exerciseId
           ? exercise
           : {
-              ...exercise,
-              sets: exercise.sets.map((set) => {
-                if (set.id !== setId) return set;
-                const current = Array.isArray(set.reps) ? set.reps : [];
-                if (current.length >= 4) return set;
-                return { ...set, reps: [...current, ''] };
-              }),
-            }
+            ...exercise,
+            sets: exercise.sets.map((set) => {
+              if (set.id !== setId) return set;
+              const current = Array.isArray(set.reps) ? set.reps : [];
+              if (current.length >= 4) return set;
+              return { ...set, reps: [...current, ''] };
+            }),
+          }
       ),
     }));
   };
@@ -273,40 +278,40 @@ const CreateWorkout = () => {
         exercise.id !== exerciseId
           ? exercise
           : {
-              ...exercise,
-              sets: exercise.sets.map((set) => {
-                if (set.id !== setId) return set;
-                const current = Array.isArray(set.reps) ? set.reps : [];
-                if (current.length <= 3) return set;
-                return { ...set, reps: current.slice(0, -1) };
-              }),
-            }
+            ...exercise,
+            sets: exercise.sets.map((set) => {
+              if (set.id !== setId) return set;
+              const current = Array.isArray(set.reps) ? set.reps : [];
+              if (current.length <= 3) return set;
+              return { ...set, reps: current.slice(0, -1) };
+            }),
+          }
       ),
     }));
   };
 
-const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
-  setExerciseForm((prev) => ({
-    ...prev,
-    exercises: prev.exercises.map((exercise) =>
-      exercise.id === exerciseId
-        ? {
+  const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
+    setExerciseForm((prev) => ({
+      ...prev,
+      exercises: prev.exercises.map((exercise) =>
+        exercise.id === exerciseId
+          ? {
             ...exercise,
             sets: exercise.sets.map((set) =>
               set.id === setId
                 ? {
-                    ...set,
-                    reps: set.reps.map((rep, idx) =>
-                      idx === repIndex ? value : rep
-                    ),
-                  }
+                  ...set,
+                  reps: set.reps.map((rep, idx) =>
+                    idx === repIndex ? value : rep
+                  ),
+                }
                 : set
             ),
           }
-        : exercise
-    ),
-  }));
-};
+          : exercise
+      ),
+    }));
+  };
 
   const toggleDay = (day) => {
     setExerciseForm(prev => ({
@@ -322,15 +327,15 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
     if (exerciseForm.selectedDays.length === 0) {
       newErrors.days = 'Please select at least one day';
     }
-    
+
     exerciseForm.exercises.forEach(exercise => {
       exercise.sets.forEach(set => {
-      if (!Array.isArray(set.reps) || set.reps.some(r => r.trim() === '')) {
-  newErrors.sets = 'All rep fields must be filled';
-}
+        if (!Array.isArray(set.reps) || set.reps.some(r => r.trim() === '')) {
+          newErrors.sets = 'All rep fields must be filled';
+        }
       });
     });
-    
+
     return newErrors;
   };
 
@@ -345,36 +350,30 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
     setIsSaving(true);
 
     const daysPayload = exerciseForm.selectedDays.map((dayNumber) => {
-      const aggregatedExercises = {};
+      const dayExercises = [];
 
       exerciseForm.exercises.forEach((exercise) => {
         exercise.sets.forEach((set) => {
-          const key = `${set.exercise}-${set.location}`;
-          
-          if (!aggregatedExercises[key]) {
-            aggregatedExercises[key] = {
-              name: set.exercise,
-              targetArea: createForm.targetArea,
-              location: set.location,
-              imageUrls: [],
-              equipmentRequirement: 'with_equipment',
-              sets: [],
-              notes: '',
-            };
-          }
+          if (!set.exercise || !set.exercise.trim()) return;
 
-          const newSets = (Array.isArray(set.reps) ? set.reps : [])
-            .map((r) => Number(r))
-            .filter((n) => Number.isFinite(n) && n >= 0)
-            .map((reps) => ({ reps }));
-            
-          aggregatedExercises[key].sets.push(...newSets);
+          dayExercises.push({
+            name: set.exercise,
+            targetArea: createForm.targetArea,
+            location: set.location,
+            imageUrls: [],
+            equipmentRequirement: 'with_equipment',
+            sets: (Array.isArray(set.reps) ? set.reps : [])
+              .map((r) => Number(r))
+              .filter((n) => Number.isFinite(n) && n >= 0)
+              .map((reps) => ({ reps })),
+            notes: '',
+          });
         });
       });
 
       return {
         day: dayNumber,
-        exercises: Object.values(aggregatedExercises),
+        exercises: dayExercises,
       };
     });
 
@@ -403,21 +402,12 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
           selectedDays: [1],
           exercises: [
             {
-              id: 1,
+              id: `ex-init-${Date.now()}-1`,
               name: 'Exercise 1',
               image: images.excer,
               sets: [
-                { id: 1, location: 'At Gym', exercise: 'Chest Press Machine', reps: ['', '', '']},
-                { id: 2, location: 'At Home', exercise: 'Push Ups', reps: ['', '', ''] }
-              ]
-            },
-             {
-              id: 2,
-              name: 'Exercise 2',
-              image: images.excer,
-              sets: [
-                { id: 3, location: 'At Gym', exercise: 'Chest Press Machine', reps: ['', '', '']},
-                { id: 4, location: 'At Home', exercise: 'Push Ups', reps: ['', '', ''] }
+                { id: `gym-init-${Date.now()}-1`, location: 'At Gym', exercise: 'Chest Press Machine', reps: ['', '', ''] },
+                { id: `home-init-${Date.now()}-1`, location: 'At Home', exercise: 'Push Ups', reps: ['', '', ''] }
               ]
             }
           ]
@@ -455,19 +445,55 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
     if (Array.isArray(normalized?.days)) {
       const dayWithExercises = normalized.days.find(d => Array.isArray(d.exercises) && d.exercises.length > 0);
       if (dayWithExercises) {
-         derivedExercises = dayWithExercises.exercises.map((ex, index) => ({
-            id: Date.now() + index,
-            name: `Exercise ${index + 1}`,
-            image: images.excer,
-            sets: [{
-                id: Date.now() + index + 1000,
+        const rawList = dayWithExercises.exercises;
+        const grouped = [];
+
+        for (let i = 0; i < rawList.length; i++) {
+          const ex = rawList[i];
+          const hasGym = ex.location === 'At Gym';
+          const nextEx = i + 1 < rawList.length ? rawList[i + 1] : null;
+          const hasNextHome = nextEx && nextEx.location === 'At Home';
+
+          if (hasGym && hasNextHome) {
+            // Group pair
+            grouped.push({
+              id: `ui-group-${Date.now()}-${i}`,
+              name: `Exercise ${grouped.length + 1}`,
+              image: images.excer,
+              sets: [
+                {
+                  id: `edit-gym-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 7)}`,
+                  location: 'At Gym',
+                  exercise: ex?.name || '',
+                  reps: Array.isArray(ex?.sets) ? ex.sets.map((s) => `${s?.reps ?? ''}`) : ['', '', ''],
+                },
+                {
+                  id: `edit-home-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 7)}`,
+                  location: 'At Home',
+                  exercise: nextEx?.name || '',
+                  reps: Array.isArray(nextEx?.sets) ? nextEx.sets.map((s) => `${s?.reps ?? ''}`) : ['', '', ''],
+                }
+              ]
+            });
+            i++; // Skip the home one
+          } else {
+            // Single exercise
+            grouped.push({
+              id: `edit-single-${Date.now()}-${i}`,
+              name: `Exercise ${grouped.length + 1}`,
+              image: images.excer,
+              sets: [{
+                id: `set-s-${Date.now()}-${i}`,
                 location: ex?.location || 'At Gym',
                 exercise: ex?.name || '',
                 reps: Array.isArray(ex?.sets)
                   ? ex.sets.map((s) => `${s?.reps ?? ''}`)
                   : ['', '', ''],
-            }]
-         }));
+              }]
+            });
+          }
+        }
+        derivedExercises = grouped;
       }
     }
 
@@ -479,23 +505,23 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
     } else {
       setExerciseForm({
         selectedDays: normalized.selectedDays.length > 0 ? normalized.selectedDays : [1],
-        exercises: derivedExercises.length > 0 
-          ? derivedExercises 
+        exercises: derivedExercises.length > 0
+          ? derivedExercises
           : [
-              {
-                id: 1,
-                name: 'Exercise 1',
-                image: images.excer,
-                sets: [
-                  {
-                    id: 1,
-                    location: 'At Gym',
-                    exercise: '',
-                    reps: ['', '', ''],
-                  },
-                ],
-              },
-            ],
+            {
+              id: 1,
+              name: 'Exercise 1',
+              image: images.excer,
+              sets: [
+                {
+                  id: 1,
+                  location: 'At Gym',
+                  exercise: '',
+                  reps: ['', '', ''],
+                },
+              ],
+            },
+          ],
       });
     }
 
@@ -507,34 +533,33 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
     setWorkoutPlans((prev) => prev.filter((p) => (p?._id || p?.id) !== key));
     setCurrentModal(null);
   };
-const resetExerciseForm = () => {
-  setExerciseForm({
-    selectedDays: [1],
-     exercises: [
-    {
-      id: 1,
-      name: 'Exercise 1',
-      image: images.excer,
-      sets: [
+  const resetExerciseForm = () => {
+    setExerciseForm({
+      selectedDays: [1],
+      exercises: [
         {
-          id: 1,
-          location: 'At Gym',
-          exercise: 'Chest Press Machine',
-          reps: ['', '', ''], // <-- multiple reps per set
-        },
-        {
-          id: 2,
-          location: 'At Home',
-          exercise: 'Push Ups',
-          reps: ['', '', ''],
+          id: `ex-reset-${Date.now()}-1`,
+          name: 'Exercise 1',
+          image: images.excer,
+          sets: [
+            {
+              id: `gym-reset-${Date.now()}-1`,
+              location: 'At Gym',
+              exercise: 'Chest Press Machine',
+              reps: ['', '', ''],
+            },
+            {
+              id: `home-reset-${Date.now()}-1`,
+              location: 'At Home',
+              exercise: 'Push Ups',
+              reps: ['', '', ''],
+            },
+          ],
         },
       ],
-    },
-    // more exercises...
-  ], // or your default empty structure
-  });
-  setExerciseErrors({}); // clear errors if needed
-};
+    });
+    setExerciseErrors({}); // clear errors if needed
+  };
 
   const closeModal = () => {
     setCurrentModal(null);
@@ -582,73 +607,75 @@ const resetExerciseForm = () => {
       <div className="max-w-6xl mx-auto">
 
         {/* GLOBAL OVERLAY: show when any popup modal appears (create/exercises/delete) OR delete modal open during edit */}
-       {((currentModal !== null && currentModal !== 'edit') || showDeleteModal) && (
-  <div className="fixed inset-0 backdrop-blur-sm bg-black/10 z-40" />
-)}
+        {((currentModal !== null && currentModal !== 'edit') || showDeleteModal) && (
+          <div className="fixed inset-0 backdrop-blur-sm bg-black/10 z-40" />
+        )}
 
 
         {/* Header */}
         {/* render MAIN content only when not in edit full-page mode */}
         {currentModal !== 'edit' && (
-        <>
-        <div className="flex flex-col sm:flex-row sm:justify-between justify-center items-center sm:items-center gap-4 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800">Workout Plans</h2>
-          <button 
-            onClick={() => {setCurrentModal('create');
-              setShowDeleteModal(false);
-            }} 
-            className="bg-teal-700 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition"
-          >
-            Create Workout
-          </button>
-        </div>
-
-        {/* Workout Plans Grid */}
-        {isLoadingWorkouts ? (
-          <div className="flex flex-col items-center justify-center mt-20">
-            <p className="text-gray-600 text-center text-sm font-medium">Loading workouts...</p>
-          </div>
-        ) : workoutPlans.length === 0 ? (
-          <div className="flex flex-col items-center justify-center mt-20">
-            <div className="w-32 h-32 mb-4 rounded-lg flex items-center justify-center">
-                <img
-           src={images.empty}
-           alt="No Data"
-           className="w-32 h-32 mb-4 opacity-60"
-         />
+          <>
+            <div className="flex flex-col sm:flex-row sm:justify-between justify-center items-center sm:items-center gap-4 mb-8">
+              <h2 className="text-xl font-semibold text-gray-800">Workout Plans</h2>
+              <button
+                onClick={() => {
+                  setCurrentModal('create');
+                  setShowDeleteModal(false);
+                }}
+                className="bg-teal-700 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition"
+              >
+                Create Workout
+              </button>
             </div>
-            <p className="text-gray-600 text-center text-sm font-medium">
-              There is no data here
-            </p>
-          </div>
-        ) : (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-  {workoutPlans.map(plan => (
-    <div 
-      key={plan._id || plan.id} 
-      className="bg-white rounded-lg overflow-hidden shadow-md cursor-pointer hover:shadow-lg transition"
-      onClick={() => handleEdit(plan)}
-    >
-      {/* Image Section */}
-      <div className="h-32 bg-gray-200 relative overflow-hidden">
-        <img 
-          src={plan.coverImageUrl || images.chest} 
-          alt="Workout Plan"
-          className="w-full h-full object-cover object-fill"
-        />
 
-        {/* Bottom Overlay Content */}
-        <div className="absolute bottom-0 left-0 right-0 bg-trasparent bg-opacity-40 text-white px-4 py-2 flex justify-between items-center">
-          <div className="text-sm font-medium">{plan.name}</div>
-          <div className="text-sm">{(plan.selectedDays?.length || plan.days?.length || 0)} Days</div>
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
+            {/* Workout Plans Grid */}
+            {isLoadingWorkouts ? (
+              <div className="flex flex-col items-center justify-center mt-20">
+                <p className="text-gray-600 text-center text-sm font-medium">Loading workouts...</p>
+              </div>
+            ) : workoutPlans.length === 0 ? (
+              <div className="flex flex-col items-center justify-center mt-20">
+                <div className="w-32 h-32 mb-4 rounded-lg flex items-center justify-center">
+                  <img
+                    src={images.empty}
+                    alt="No Data"
+                    className="w-32 h-32 mb-4 opacity-60"
+                  />
+                </div>
+                <p className="text-gray-600 text-center text-sm font-medium">
+                  There is no data here
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {workoutPlans.map(plan => (
+                  <div
+                    key={plan._id || plan.id}
+                    className="bg-white rounded-lg overflow-hidden shadow-md cursor-pointer hover:shadow-lg transition"
+                    style={{ width: '327px', height: '181px', transform: 'rotate(0deg)', opacity: 1 }}
+                    onClick={() => handleEdit(plan)}
+                  >
+                    {/* Image Section */}
+                    <div className="h-[181px] bg-gray-200 relative overflow-hidden">
+                      <img
+                        src={plan.coverImageUrl || images.chest}
+                        alt="Workout Plan"
+                        className="w-full h-full object-cover object-fill"
+                      />
 
-        )}
-        </>
+                      {/* Bottom Overlay Content */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-trasparent bg-opacity-40 text-white px-4 py-2 flex justify-between items-center">
+                        <div className="text-sm font-medium">{plan.name}</div>
+                        <div className="text-sm">{(plan.selectedDays?.length || plan.days?.length || 0)} Days</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+            )}
+          </>
         )}
 
         {/* Create Workout Modal */}
@@ -673,9 +700,8 @@ const resetExerciseForm = () => {
                 placeholder="Name Here"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${
-                  createErrors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${createErrors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
 
               {/* Target Area */}
@@ -685,9 +711,8 @@ const resetExerciseForm = () => {
               <select
                 value={createForm.targetArea}
                 onChange={(e) => setCreateForm({ ...createForm, targetArea: e.target.value })}
-                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${
-                  createErrors.targetArea ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${createErrors.targetArea ? 'border-red-500' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select</option>
                 <option value="Chest">Chest</option>
@@ -704,9 +729,8 @@ const resetExerciseForm = () => {
                 placeholder="20 min"
                 value={createForm.duration}
                 onChange={(e) => setCreateForm({ ...createForm, duration: e.target.value })}
-                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${
-                  createErrors.duration ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${createErrors.duration ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
 
               {/* Goal Type */}
@@ -716,9 +740,8 @@ const resetExerciseForm = () => {
               <select
                 value={createForm.goalType}
                 onChange={(e) => setCreateForm({ ...createForm, goalType: e.target.value })}
-                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${
-                  createErrors.goalType ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${createErrors.goalType ? 'border-red-500' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select</option>
                 <option value="Weight Loss">Weight Loss</option>
@@ -734,13 +757,10 @@ const resetExerciseForm = () => {
                 placeholder="Prompt"
                 value={createForm.prompt}
                 onChange={(e) => setCreateForm({ ...createForm, prompt: e.target.value })}
-                className={`w-full border rounded-md p-2 h-24 mb-4 focus:outline-none focus:border-teal-700 ${
-                  createErrors.prompt ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-md p-2 h-24 mb-4 focus:outline-none focus:border-teal-700 ${createErrors.prompt ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
-              {apiError ? (
-                <div className="text-red-500 text-sm mb-3">{apiError}</div>
-              ) : null}
+
 
               {/* Buttons */}
               <div className="flex justify-between">
@@ -748,7 +768,7 @@ const resetExerciseForm = () => {
                   onClick={closeModal}
                   className="px-4 py-2 rounded-md  hover:bg-gray-50"
                 >
-                  
+
                 </button>
                 <button
                   onClick={handleCreateSubmit}
@@ -786,11 +806,10 @@ const resetExerciseForm = () => {
                           onChange={() => toggleDay(day)}
                           className="sr-only"
                         />
-                        <div className={`w-6 h-6 rounded border-2 flex items-center justify-center mr-3 ${
-                          exerciseForm.selectedDays.includes(day)
-                            ? 'bg-teal-700 border-teal-700'
-                            : exerciseErrors.days ? 'border-red-500' : 'border-gray-300'
-                        }`}>
+                        <div className={`w-6 h-6 rounded border-2 flex items-center justify-center mr-3 ${exerciseForm.selectedDays.includes(day)
+                          ? 'bg-teal-700 border-teal-700'
+                          : exerciseErrors.days ? 'border-red-500' : 'border-gray-300'
+                          }`}>
                           {exerciseForm.selectedDays.includes(day) && (
                             <Check size={16} className="text-white" />
                           )}
@@ -802,11 +821,22 @@ const resetExerciseForm = () => {
                 </div>
 
                 {/* Exercises */}
-                <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex-1 overflow-y-auto">
 
-                  {exerciseForm.exercises.map((exercise) => (
+                  {exerciseForm.exercises.map((exercise, index) => (
                     <div key={exercise.id} className="mb-10">
-                      <h3 className="text-sm font-semibold text-gray-800 mb-3">{exercise.name}</h3>
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-sm font-semibold text-gray-800">{exercise.name}</h3>
+                        {index > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => removeExercise(exercise.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <X size={18} />
+                          </button>
+                        )}
+                      </div>
 
                       <div className="flex items-center gap-4 mb-4">
                         <div className="flex items-center gap-2">
@@ -856,9 +886,8 @@ const resetExerciseForm = () => {
                                     onChange={(e) =>
                                       updateExerciseSet(exercise.id, set.id, repIndex, e.target.value)
                                     }
-                                    className={`border rounded-md px-3 py-1 w-24 text-sm focus:outline-none focus:border-teal-700 ${
-                                      exerciseErrors.sets ? 'border-red-500' : 'border-gray-300'
-                                    }`}
+                                    className={`border rounded-md px-3 py-1 w-24 text-sm focus:outline-none focus:border-teal-700 ${exerciseErrors.sets ? 'border-red-500' : 'border-gray-300'
+                                      }`}
                                   />
                                 </div>
                               ))}
@@ -909,16 +938,14 @@ const resetExerciseForm = () => {
                   COMPLETE
                 </button>
               </div>
-              {apiError ? (
-                <div className="text-red-500 text-sm mt-3">{apiError}</div>
-              ) : null}
+
             </div>
           </div>
         )}
 
         {/* EDIT FULL PAGE (not modal) */}
         {currentModal === 'edit' && editingPlan && (
-          <div className="w-full max-w-5xl mx-auto mt-6 bg-gray-100 p-8 rounded-2xl z-10 overflow-hidden">
+          <div className="w-full max-w-5xl mx-auto mt-6 p-8 rounded-2xl z-10 overflow-hidden">
             <h2 className="text-2xl font-semibold mb-6">Exercises</h2>
 
             <div className="flex gap-6">
@@ -934,13 +961,12 @@ const resetExerciseForm = () => {
                         className="sr-only"
                       />
                       <div
-                        className={`w-6 h-6 rounded border-2 flex items-center justify-center mr-3 ${
-                          exerciseForm.selectedDays.includes(day)
-                            ? "bg-teal-700 border-teal-700"
-                            : exerciseErrors.days
+                        className={`w-6 h-6 rounded border-2 flex items-center justify-center mr-3 ${exerciseForm.selectedDays.includes(day)
+                          ? "bg-teal-700 border-teal-700"
+                          : exerciseErrors.days
                             ? "border-red-500"
                             : "border-gray-300"
-                        }`}
+                          }`}
                       >
                         {exerciseForm.selectedDays.includes(day) && (
                           <Check size={16} className="text-white" />
@@ -953,74 +979,123 @@ const resetExerciseForm = () => {
               </div>
 
               {/* Exercises */}
-              <div className="flex-1 bg-gray-100 p-4 rounded-lg">
-                {exerciseForm.exercises.map((exercise) => (
-                  <div key={exercise.id} className="mb-6">
-                    <h3 className="font-semibold mb-4">{exercise.name}</h3>
-
-                    <div className="flex items-center flex-row gap-1 mb-2">
-                      <img src={exercise.image} alt={exercise.name} className="w-10 h-10 mr-3 rounded" />
-                      <img src={exercise.image} alt={exercise.name} className="w-10 h-10 mr-3 rounded" />
-                      <img src={exercise.image} alt={exercise.name} className="w-10 h-10 mr-3 rounded" />
+              <div className="flex-1 overflow-y-auto">
+                {exerciseForm.exercises.map((exercise, index) => (
+                  <div key={exercise.id} className="mb-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-800">{exercise.name}</h3>
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => removeExercise(exercise.id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          aria-label="Remove exercise"
+                        >
+                          <X size={20} />
+                        </button>
+                      )}
                     </div>
 
-                    {exercise.sets.map((set, index) => (
-                      <div key={set.id} className="flex flex-wrap items-center mb-3 text-sm">
-                        <span
-                          className={`px-2 py-1 rounded text-xs mr-3 ${
-                            set.location === 'At Gym' ? 'bg-teal-100 text-teal-700' : 'bg-blue-100 text-blue-700'
-                          }`}
-                        >
-                          {set.location}
-                        </span>
-
-                        <span className="w-32 mr-2">{set.exercise}</span>
-                        <span className="mr-2">Set {index + 1}</span>
-
-                        <div className="flex flex-wrap gap-2 items-center">
-                        {Array.isArray(set.reps) &&
-                          set.reps.map((repValue, repIndex) => (
-                            <input
-                              key={repIndex}
-                              type="number"
-                              min="0"
-                              placeholder={`Rep ${repIndex + 1}`}
-                              value={repValue}
-                              onChange={(e) =>
-                                updateExerciseSet(exercise.id, set.id, repIndex, e.target.value)
-                              }
-                              className={`border rounded px-2 py-1  w-20 ${
-                                exerciseErrors.sets ? 'border-red-500' : 'border-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3].map((i) => (
+                          <img
+                            key={i}
+                            src={exercise.image}
+                            alt=""
+                            className="w-10 h-10 rounded object-cover border border-gray-200"
+                          />
+                        ))}
                       </div>
-                    ))}
+
+                      <button
+                        type="button"
+                        onClick={addExercise}
+                        className="text-teal-700 text-sm flex items-center gap-2 hover:text-teal-800"
+                      >
+                        <RotateCcw size={16} />
+                        Regenerate
+                      </button>
+                    </div>
+
+                    {['At Gym', 'At Home'].map((location) => {
+                      const set = exercise.sets.find((s) => s.location === location);
+                      if (!set) return null;
+                      const reps = Array.isArray(set.reps) ? set.reps : ['', '', ''];
+
+                      return (
+                          <div key={`${exercise.id}-${location}`} className={`flex ${reps.length >= 4 ? 'flex-col items-start gap-2' : 'items-center gap-6'} mb-3`}>
+                            <div className={`flex items-center gap-6 ${reps.length >= 4 ? 'w-full justify-between' : 'min-w-[260px]'}`}>
+                              <div className="flex items-center gap-6">
+                                <span className="text-teal-700 font-semibold text-sm w-[64px]">
+                                  {location}
+                                </span>
+                                <span className="text-gray-800 text-sm">{set.exercise}</span>
+                              </div>
+                            </div>
+
+                            <div className={`flex items-center ${reps.length >= 4 ? 'gap-4 w-full justify-start' : 'gap-4'}`}>
+                              {reps.map((repValue, repIndex) => (
+                                <div key={`${set.id}-${repIndex}`} className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-700 whitespace-nowrap">{`Set ${repIndex + 1}`}</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="Rep here"
+                                    value={repValue}
+                                    onChange={(e) =>
+                                      updateExerciseSet(exercise.id, set.id, repIndex, e.target.value)
+                                    }
+                                    className={`border rounded-md px-3 py-1 w-24 text-sm focus:outline-none focus:border-teal-700 ${exerciseErrors.sets ? 'border-red-500' : 'border-gray-300'
+                                      }`}
+                                  />
+                                </div>
+                              ))}
+
+                              {reps.length < 4 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => addSetRep(exercise.id, set.id)}
+                                  className="w-6 h-6 rounded-full bg-teal-700 text-white hover:bg-teal-800 flex items-center justify-center flex-shrink-0"
+                                  aria-label="Add set"
+                                >
+                                  <Plus size={14} />
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => removeSetRep(exercise.id, set.id)}
+                                  className="w-6 h-6 rounded-full bg-red-600 text-white hover:bg-red-700 flex items-center justify-center flex-shrink-0"
+                                  aria-label="Remove set"
+                                >
+                                  <Minus size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                    })}
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Footer Buttons for Edit Full Page */}
-            <div className="flex justify-center gap-4 mt-6">
+            <div className="flex justify-end gap-4 mt-6">
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="border-2 border-teal-700 text-teal-700 px-[70px] py-2 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                className="w-[312px] h-[50px] border-2 border-teal-700 text-teal-700 rounded-[12px] hover:bg-gray-50 flex items-center justify-center gap-2"
               >
-                
                 Delete
               </button>
               <button
                 onClick={handleExerciseComplete}
-                className={`bg-teal-700 text-white px-[90px] py-2 rounded-lg hover:bg-teal-800 flex items-center gap-2 ${isSaving ? 'opacity-70 pointer-events-none' : ''}`}
+                className={`w-[312px] h-[50px] bg-teal-700 text-white rounded-[12px] hover:bg-teal-800 flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 pointer-events-none' : ''}`}
               >
-               Edit
+                Edit
               </button>
             </div>
-            {apiError ? (
-              <div className="text-red-500 text-sm mt-4 text-center">{apiError}</div>
-            ) : null}
+
 
             {/* Delete Confirmation Modal for Edit Page (keeps modal behavior) */}
             {showDeleteModal && (
@@ -1032,11 +1107,11 @@ const resetExerciseForm = () => {
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Trash2 className="w-8 h-8 text-gray-600" />
                   </div>
-                  
+
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">
                     Are You Sure You Want To Delete This
                   </h3>
-                  
+
                   <div className="flex gap-3 mt-6">
                     <button
                       onClick={() => setShowDeleteModal(false)}
@@ -1048,7 +1123,7 @@ const resetExerciseForm = () => {
                       onClick={deleteModal}
                       className={`flex-1 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition ${isDeleting ? 'opacity-70 pointer-events-none' : ''}`}
                     >
-                     Delete
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -1079,7 +1154,7 @@ const resetExerciseForm = () => {
             </div>
           </div>
         )}
-       
+
       </div>
     </div>
   );

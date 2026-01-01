@@ -180,7 +180,7 @@ const AttendenceHistory = () => {
         <div className="w-full mx-auto">
           {/* Header */}
           <div className="flex justify-between items-center mb-6 gap-4">
-            <h1 className="text-2xl font-semibold text-teal-600">Attendance History</h1>
+            <h1 className="text-2xl font-semibold" style={{ color: "#008080" }}>Attendance History</h1>
 
             {/* Date Selector */}
             <div className="relative">
@@ -237,9 +237,10 @@ const AttendenceHistory = () => {
                       <button
                         key={index}
                         onClick={() => handleDateSelect(day)}
-                        className={`h-8 text-sm rounded hover:bg-teal-100 transition-colors ${selectedYmd && day === selectedDate.getDate() ? 'bg-teal-600 text-white hover:bg-teal-700' :
+                        className={`h-8 text-sm rounded hover:bg-[#00808020] transition-colors ${selectedYmd && day === selectedDate.getDate() ? 'text-white hover:opacity-90' :
                           day ? 'text-gray-700 hover:bg-gray-100' : ''
                           }`}
+                        style={selectedYmd && day === selectedDate.getDate() ? { backgroundColor: "#008080" } : {}}
                         disabled={!day}
                       >
                         {day}
@@ -251,15 +252,15 @@ const AttendenceHistory = () => {
             </div>
           </div>
 
-          <div className="rounded-xl overflow-hidden border border-gray-100">
+          <div className="rounded-xl overflow-hidden ">
             <div className="overflow-x-auto">
               <div className="min-w-[560px]">
-                <div className="bg-teal-600 text-white rounded-xl">
-                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg">
+                <div className="text-white rounded-xl" style={{ backgroundColor: "#008080" }}>
+                  <div className="grid grid-cols-4 gap-4 px-10 py-4 font-semibold text-lg">
                     <div className="text-left">Name</div>
                     <div className="text-center">Gym</div>
                     <div className="text-center">Home</div>
-                    <div className="text-center">Absent</div>
+                    <div className="text-right">Absent</div>
                   </div>
                 </div>
 
@@ -270,11 +271,11 @@ const AttendenceHistory = () => {
                     <div className="p-6 text-center text-gray-600">No attendance records found.</div>
                   ) : (
                     rows.map((row) => (
-                      <div key={row.key} className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 p-4 items-center">
+                      <div key={row.key} className="grid grid-cols-4 gap-4 px-10 py-4 items-center">
                         <div className="text-left text-gray-700 truncate">{row?.name || 'Name Here'}</div>
                         <div className="text-center text-gray-700">{row.gymPct}%</div>
                         <div className="text-center text-gray-700">{row.homePct}%</div>
-                        <div className="text-center text-gray-700">{row.absentPct}%</div>
+                        <div className="text-right text-gray-700">{row.absentPct}%</div>
                       </div>
                     ))
                   )}

@@ -95,7 +95,7 @@ const PrivacyPolicy = () => {
     <div className="prose max-w-none text-sm text-gray-700 px-4 py-6">
       <h2 className="text-center text-lg font-semibold mb-4">Privacy Policy</h2>
       {isLoading && <p className="text-[#92979D]">Loading...</p>}
-      {!isLoading && !!errorMessage && <p className="text-red-600">{errorMessage}</p>}
+
       {!isLoading && !errorMessage && terms.length === 0 && (
         <p className="text-[#92979D]">No privacy policy found.</p>
       )}

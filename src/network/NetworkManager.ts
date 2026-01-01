@@ -39,6 +39,7 @@ interface ApiCallParams {
   multipart?: boolean;
   headers?: Record<string, string>;
   responseType?: any;
+  showToast?: boolean;
 }
 
 // Configure axios defaults
@@ -85,12 +86,20 @@ const handleAuthenticationError = (logout: () => void, message: string) => {
   logout();
 };
 
-const emitToast = (message: string, type: "error" | "success" = "error") => {
+let lastToast = { message: "", time: 0 };
+
+export const emitToast = (message: string, type: "error" | "success" = "error") => {
+  const now = Date.now();
+  if (lastToast.message === message && now - lastToast.time < 1000) {
+    return;
+  }
+  lastToast = { message, time: now };
+
   try {
     window.dispatchEvent(
       new CustomEvent("app:toast", { detail: { type, message } })
     );
-  } catch {}
+  } catch { }
 };
 
 export const callApi = async ({
@@ -103,6 +112,7 @@ export const callApi = async ({
   multipart = false,
   headers = {},
   responseType,
+  showToast = true,
 }: ApiCallParams): Promise<void> => {
   try {
     const token = useAuthStore.getState().token;
@@ -178,6 +188,7 @@ export const callApi = async ({
         console.warn("API Warning:", responseData.errorType);
       } else if (responseData?.message) {
         console.log("API Message:", responseData.message);
+        if (showToast) emitToast(responseData.message, "success");
       }
     } else {
       onError && onError(responseData);
@@ -190,7 +201,7 @@ export const callApi = async ({
       const m =
         (responseData && (responseData.message || (responseData as any)?.data?.message)) ||
         "Request failed. Please try again.";
-      emitToast(String(m));
+      if (showToast) emitToast(String(m));
     }
   } catch (error) {
     console.error("API Call Failed:", {
@@ -218,7 +229,7 @@ export const callApi = async ({
             serverError?.errorType === "INVALID_PASSWORD")
         ) {
           onError && onError({ message: "Incorrect password. Please try again." });
-          emitToast("Incorrect password. Please try again.");
+          if (showToast) emitToast("Incorrect password. Please try again.");
           return;
         }
 
@@ -256,7 +267,7 @@ export const callApi = async ({
           useAuthStore.getState().logout,
           serverError?.message || "Authentication failed. Please login again."
         );
-        emitToast(
+        if (showToast) emitToast(
           String(serverError?.message || "Authentication failed. Please login again.")
         );
         return;
@@ -267,7 +278,7 @@ export const callApi = async ({
           onError({
             message: "File is too large. Please upload a smaller file.",
           });
-        emitToast("File is too large. Please upload a smaller file.");
+        if (showToast) emitToast("File is too large. Please upload a smaller file.");
         return;
       }
 
@@ -276,7 +287,7 @@ export const callApi = async ({
         const message = serverError?.message?.toLowerCase() || "";
         if (message.includes("no file uploaded")) {
           onError && onError({ message: "No file uploaded. Please select a file." });
-          emitToast("No file uploaded. Please select a file.");
+          if (showToast) emitToast("No file uploaded. Please select a file.");
           return;
         }
       }
@@ -292,7 +303,7 @@ export const callApi = async ({
           serverError?.errorType === "INVALID_PASSWORD"
         ) {
           onError && onError({ message: "Incorrect password. Please try again." });
-          emitToast("Incorrect password. Please try again.");
+          if (showToast) emitToast("Incorrect password. Please try again.");
           return;
         }
 
@@ -310,17 +321,17 @@ export const callApi = async ({
 
           if (isSignin && isEmail) {
             onError && onError({ message: "Invalid credentials" });
-            emitToast("Invalid credentials");
+            if (showToast) emitToast("Invalid credentials");
             return;
           }
           if (isSignin && isPhone) {
             onError && onError({ message: "Invalid credentials" });
-            emitToast("Invalid credentials");
+            if (showToast) emitToast("Invalid credentials");
             return;
           }
 
           onError && onError({ message: "Invalid user" });
-           emitToast("Invalid user");
+          if (showToast) emitToast("Invalid user");
           return;
         }
       }
@@ -328,7 +339,7 @@ export const callApi = async ({
       if (axiosError.code === "ECONNABORTED") {
         onError &&
           onError({ message: "Request timed out. Please try again." });
-        emitToast("Request timed out. Please try again.");
+        if (showToast) emitToast("Request timed out. Please try again.");
       } else if (
         axiosError.code === "NETWORK_ERROR" ||
         axiosError.message.includes("Network Error")
@@ -338,18 +349,18 @@ export const callApi = async ({
             message:
               "Network connection failed. Please check your internet connection.",
           });
-        emitToast("Network connection failed. Please check your internet connection.");
+        if (showToast) emitToast("Network connection failed. Please check your internet connection.");
       } else if (axiosError.response) {
         const serverError = axiosError.response.data as ApiResponse;
         onError && onError(serverError);
-        emitToast(String(serverError?.message || "Request failed. Please try again."));
+        if (showToast) emitToast(String(serverError?.message || "Request failed. Please try again."));
       } else {
         onError && onError({ message: "Request failed. Please try again." });
-        emitToast("Request failed. Please try again.");
+        if (showToast) emitToast("Request failed. Please try again.");
       }
     } else {
       onError && onError({ message: "An unexpected error occurred." });
-      emitToast("An unexpected error occurred.");
+      if (showToast) emitToast("An unexpected error occurred.");
     }
   }
 };

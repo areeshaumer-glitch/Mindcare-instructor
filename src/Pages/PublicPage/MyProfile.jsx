@@ -32,7 +32,7 @@ const MyProfile = () => {
         <MenuItem label="Terms & Condition" active={selectedSection === 'terms'} onClick={() => setSelectedSection('terms')} />
         <MenuItem label="Privacy Policy" active={selectedSection === 'privacy'} onClick={() => setSelectedSection('privacy')} />
       </div>
-      <div className="w-full md:flex-1  bg-white rounded-xl shadow-md p-4 self-start">
+      <div className="w-full md:flex-1 bg-white rounded-xl shadow-md p-4 self-start min-h-[430px]">
         {renderContent()}
       </div>
     </div>
