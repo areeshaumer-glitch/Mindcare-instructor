@@ -344,23 +344,39 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
     setApiError('');
     setIsSaving(true);
 
-    const daysPayload = exerciseForm.selectedDays.map((dayNumber) => ({
-      day: dayNumber,
-      exercises: exerciseForm.exercises.flatMap((exercise) =>
-        exercise.sets.map((set) => ({
-          name: set.exercise,
-          targetArea: createForm.targetArea,
-          location: set.location,
-          imageUrls: [],
-          equipmentRequirement: 'with_equipment',
-          sets: (Array.isArray(set.reps) ? set.reps : [])
+    const daysPayload = exerciseForm.selectedDays.map((dayNumber) => {
+      const aggregatedExercises = {};
+
+      exerciseForm.exercises.forEach((exercise) => {
+        exercise.sets.forEach((set) => {
+          const key = `${set.exercise}-${set.location}`;
+          
+          if (!aggregatedExercises[key]) {
+            aggregatedExercises[key] = {
+              name: set.exercise,
+              targetArea: createForm.targetArea,
+              location: set.location,
+              imageUrls: [],
+              equipmentRequirement: 'with_equipment',
+              sets: [],
+              notes: '',
+            };
+          }
+
+          const newSets = (Array.isArray(set.reps) ? set.reps : [])
             .map((r) => Number(r))
             .filter((n) => Number.isFinite(n) && n >= 0)
-            .map((reps) => ({ reps })),
-          notes: '',
-        }))
-      ),
-    }));
+            .map((reps) => ({ reps }));
+            
+          aggregatedExercises[key].sets.push(...newSets);
+        });
+      });
+
+      return {
+        day: dayNumber,
+        exercises: Object.values(aggregatedExercises),
+      };
+    });
 
     const payload = {
       name: createForm.name,
@@ -432,20 +448,28 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
       prompt: normalized?.prompt || '',
     });
 
-    const derivedSets = Array.isArray(normalized?.days)
-      ? normalized.days.flatMap((d) => {
-          const dayNumber = d?.day;
-          const exercises = Array.isArray(d?.exercises) ? d.exercises : [];
-          return exercises.map((ex, index) => ({
-            id: `${dayNumber || 'day'}-${index}-${ex?.name || 'exercise'}`,
-            location: ex?.location || 'At Gym',
-            exercise: ex?.name || '',
-            reps: Array.isArray(ex?.sets)
-              ? ex.sets.map((s) => `${s?.reps ?? ''}`)
-              : ['', '', ''],
-          }));
-        })
-      : [];
+    let derivedExercises = [];
+
+    // Extract exercises from the first day that has them to populate the form
+    // This assumes that the UI represents a uniform plan across selected days
+    if (Array.isArray(normalized?.days)) {
+      const dayWithExercises = normalized.days.find(d => Array.isArray(d.exercises) && d.exercises.length > 0);
+      if (dayWithExercises) {
+         derivedExercises = dayWithExercises.exercises.map((ex, index) => ({
+            id: Date.now() + index,
+            name: `Exercise ${index + 1}`,
+            image: images.excer,
+            sets: [{
+                id: Date.now() + index + 1000,
+                location: ex?.location || 'At Gym',
+                exercise: ex?.name || '',
+                reps: Array.isArray(ex?.sets)
+                  ? ex.sets.map((s) => `${s?.reps ?? ''}`)
+                  : ['', '', ''],
+            }]
+         }));
+      }
+    }
 
     if (Array.isArray(normalized?.exercises) && normalized.exercises.length > 0) {
       setExerciseForm({
@@ -455,24 +479,23 @@ const updateExerciseSet = (exerciseId, setId, repIndex, value) => {
     } else {
       setExerciseForm({
         selectedDays: normalized.selectedDays.length > 0 ? normalized.selectedDays : [1],
-        exercises: [
-          {
-            id: 1,
-            name: 'Exercises',
-            image: images.excer,
-            sets:
-              derivedSets.length > 0
-                ? derivedSets
-                : [
-                    {
-                      id: 1,
-                      location: 'At Gym',
-                      exercise: '',
-                      reps: ['', '', ''],
-                    },
-                  ],
-          },
-        ],
+        exercises: derivedExercises.length > 0 
+          ? derivedExercises 
+          : [
+              {
+                id: 1,
+                name: 'Exercise 1',
+                image: images.excer,
+                sets: [
+                  {
+                    id: 1,
+                    location: 'At Gym',
+                    exercise: '',
+                    reps: ['', '', ''],
+                  },
+                ],
+              },
+            ],
       });
     }
 
@@ -799,7 +822,7 @@ const resetExerciseForm = () => {
 
                         <button
                           type="button"
-                          onClick={() => regenerateExercise(exercise.id)}
+                          onClick={addExercise}
                           className="text-teal-700 text-sm flex items-center gap-2 hover:text-teal-800"
                         >
                           <RotateCcw size={16} />
@@ -865,8 +888,18 @@ const resetExerciseForm = () => {
                       })}
                     </div>
                   ))}
+
+                  {/* <button
+                    type="button"
+                    onClick={addExercise}
+                    className="mt-4 flex items-center text-teal-700 font-semibold text-sm hover:text-teal-800"
+                  >
+                    <Plus size={16} className="mr-1" />
+                    Add Exercise
+                  </button> */}
                 </div>
               </div>
+
 
               <div className="flex justify-end pt-6">
                 <button
@@ -885,8 +918,8 @@ const resetExerciseForm = () => {
 
         {/* EDIT FULL PAGE (not modal) */}
         {currentModal === 'edit' && editingPlan && (
-          <div className="w-full max-w-5xl mx-auto mt-6 bg-gray-100 p-8 rounded-2xl z-10">
-            <h2 className="text-2xl font-semibold mb-6">Edit Workout  {editingPlan.name}</h2>
+          <div className="w-full max-w-5xl mx-auto mt-6 bg-gray-100 p-8 rounded-2xl z-10 overflow-hidden">
+            <h2 className="text-2xl font-semibold mb-6">Exercises</h2>
 
             <div className="flex gap-6">
               {/* Days Selection */}
@@ -932,7 +965,7 @@ const resetExerciseForm = () => {
                     </div>
 
                     {exercise.sets.map((set, index) => (
-                      <div key={set.id} className="flex items-center mb-3 text-sm">
+                      <div key={set.id} className="flex flex-wrap items-center mb-3 text-sm">
                         <span
                           className={`px-2 py-1 rounded text-xs mr-3 ${
                             set.location === 'At Gym' ? 'bg-teal-100 text-teal-700' : 'bg-blue-100 text-blue-700'
@@ -944,6 +977,7 @@ const resetExerciseForm = () => {
                         <span className="w-32 mr-2">{set.exercise}</span>
                         <span className="mr-2">Set {index + 1}</span>
 
+                        <div className="flex flex-wrap gap-2 items-center">
                         {Array.isArray(set.reps) &&
                           set.reps.map((repValue, repIndex) => (
                             <input
@@ -955,11 +989,12 @@ const resetExerciseForm = () => {
                               onChange={(e) =>
                                 updateExerciseSet(exercise.id, set.id, repIndex, e.target.value)
                               }
-                              className={`border rounded px-2 py-1  w-20 mr-2 ${
+                              className={`border rounded px-2 py-1  w-20 ${
                                 exerciseErrors.sets ? 'border-red-500' : 'border-gray-300'
                               }`}
                             />
                           ))}
+                        </div>
                       </div>
                     ))}
                   </div>

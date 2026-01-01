@@ -144,14 +144,14 @@ const AttendenceHistory = () => {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-  
+
     const days = [];
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
-    
+
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(day);
@@ -174,23 +174,31 @@ const AttendenceHistory = () => {
     newDate.setMonth(newDate.getMonth() + direction);
     setSelectedDate(newDate);
   };
-return (
+  return (
     <>
       <div className="bg-white p-4 rounded-2xl">
         <div className="w-full mx-auto">
           {/* Header */}
           <div className="flex justify-between items-center mb-6 gap-4">
             <h1 className="text-2xl font-semibold text-teal-600">Attendance History</h1>
-            
+
             {/* Date Selector */}
             <div className="relative">
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
                 className="flex items-center justify-between gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors min-w-[220px]"
               >
-                <Calendar className="w-5 h-5 text-gray-500" />
-                <span className="text-gray-700">{selectedYmd ? formatDate(selectedDate) : 'Select Date'}</span>
-                <ChevronDown className="w-4 h-4 text-gray-500" />
+                <span className={selectedYmd ? "text-gray-700 font-medium" : "text-gray-500"}>
+                  {selectedYmd
+                    ? selectedDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })
+                    : 'Select Date'
+                  }
+                </span>
+                <Calendar className="w-4 h-4 text-gray-500" />
               </button>
 
               {/* Calendar Dropdown */}
@@ -223,16 +231,15 @@ return (
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="grid grid-cols-7 gap-1">
                     {generateCalendar().map((day, index) => (
                       <button
                         key={index}
                         onClick={() => handleDateSelect(day)}
-                        className={`h-8 text-sm rounded hover:bg-teal-100 transition-colors ${
-                          selectedYmd && day === selectedDate.getDate() ? 'bg-teal-600 text-white hover:bg-teal-700' : 
+                        className={`h-8 text-sm rounded hover:bg-teal-100 transition-colors ${selectedYmd && day === selectedDate.getDate() ? 'bg-teal-600 text-white hover:bg-teal-700' :
                           day ? 'text-gray-700 hover:bg-gray-100' : ''
-                        }`}
+                          }`}
                         disabled={!day}
                       >
                         {day}

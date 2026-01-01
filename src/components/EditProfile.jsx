@@ -203,11 +203,11 @@ const EditProfile = () => {
 
     const trimmedName = String(
       fullName ||
-        profile?.name ||
-        profile?.user?.name ||
-        userData?.profile?.fullName ||
-        userData?.phone ||
-        '',
+      profile?.name ||
+      profile?.user?.name ||
+      userData?.profile?.fullName ||
+      userData?.phone ||
+      '',
     ).trim();
 
     if (!trimmedName) {
@@ -365,11 +365,11 @@ const EditProfile = () => {
       <div className="space-y-6 w-full max-w-md">
 
         {/* Hidden file input */}
-        <input 
-          type="file" 
-          accept="image/*" 
-          onChange={handleImageUpload} 
-          className="hidden" 
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
           ref={fileInputRef}
         />
 
@@ -378,27 +378,27 @@ const EditProfile = () => {
           <div className="flex items-center gap-3">
             <button onClick={handleButtonClick} className="hover:opacity-80 transition-opacity">
               {imagePreviewUrl ? (
-                <img 
-                  src={withCacheBuster(imagePreviewUrl)} 
-                  alt="Profile" 
-                  className="w-20 h-20 rounded-full object-cover border-2 border-teal-700" 
+                <img
+                  src={withCacheBuster(imagePreviewUrl)}
+                  alt="Profile"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-teal-700"
                 />
               ) : (
-                <img 
-                  src={images.camera} 
-                  alt="Profile" 
-                  className="w-20 h-20 rounded-full object-cover" 
+                <img
+                  src={images.camera}
+                  alt="Profile"
+                  className="w-20 h-20 rounded-full object-cover"
                 />
               )}
             </button>
-            <div className="flex flex-col">
+            {/* <div className="flex flex-col">
               <h3 className="font-semibold text-lg">{displayName}</h3>
               <h3 className="font-semibold text-lg text-[#0E4E95]">{displayFileName}</h3>
-            </div>
+            </div> */}
           </div>
 
-          <button 
-            onClick={handleButtonClick} 
+          <button
+            onClick={handleButtonClick}
             className="text-black border border-[#0E4E95] px-4 rounded-2xl py-2 font-medium hover:underline"
             disabled={isLoading || isSaving}
           >

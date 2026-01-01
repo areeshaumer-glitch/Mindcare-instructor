@@ -9,22 +9,22 @@ import { api } from '../../network/Environment';
 
 
 const OTPPage = () => {
-     const [otp, setOtp] = useState(['', '', '', '','','']);
-     const location = useLocation();
-     const email = location?.state?.email;
-     const otpCooldown = location?.state?.otpCooldown;
-     const flow = location?.state?.flow;
-     const [seconds, setSeconds] = useState(
-      typeof otpCooldown === 'number' ? otpCooldown : 60
-     );
-     const otpHelpText = email
-       ? `Enter the 6-digit code sent to ${email}.`
-       : 'Enter the 6-digit code sent to your email.';
-     const [apiError, setApiError] = useState('');
-     const [isSubmitting, setIsSubmitting] = useState(false);
-     const navigate =useNavigate();
-      useEffect(() => {
-   
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const location = useLocation();
+  const email = location?.state?.email;
+  const otpCooldown = location?.state?.otpCooldown;
+  const flow = location?.state?.flow;
+  const [seconds, setSeconds] = useState(
+    typeof otpCooldown === 'number' ? otpCooldown : 60
+  );
+  const otpHelpText = email
+    ? `Enter the 6-digit code sent to ${email}.`
+    : 'Enter the 6-digit code sent to your email.';
+  const [apiError, setApiError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  useEffect(() => {
+
     if (seconds > 0) {
       const timer = setTimeout(() => {
         setSeconds(seconds - 1);
@@ -32,20 +32,19 @@ const OTPPage = () => {
       return () => clearTimeout(timer);
     }
   }, [seconds]);
-//   useFocusEffect(
-//   useCallback(() => {
-//     setOtp(""); // Clea return () => {}; // No cleanup needed
-//   setSeconds(60); 
-//   }, [])
-//);
+  //   useFocusEffect(
+  //   useCallback(() => {
+  //     setOtp(""); // Clea return () => {}; // No cleanup needed
+  //   setSeconds(60); 
+  //   }, [])
+  //);
   const formatTime = (sec) => {
     const minutes = Math.floor(sec / 60);
     const seconds = sec % 60;
-    return `${minutes < 10 ? `0${minutes}` : minutes}:${
-      seconds < 10 ? `0${seconds}` : seconds
-    }`;
+    return `${minutes < 10 ? `0${minutes}` : minutes}:${seconds < 10 ? `0${seconds}` : seconds
+      }`;
   };
-  const handleChange = (value , index) => {
+  const handleChange = (value, index) => {
     if (!/^\d?$/.test(value)) return
     const updated = [...otp]
     updated[index] = value
@@ -103,7 +102,7 @@ const OTPPage = () => {
       onSuccess: () => {
         navigate('/create-password', { state: { email, flow } });
       },
-      onError: () => {},
+      onError: () => { },
     });
     setIsSubmitting(false);
   };
@@ -114,17 +113,17 @@ const OTPPage = () => {
       leftTitle="Verify your email"
       leftDescription="Enter the code to continue and secure your account."
     >
-     <p className="text-center text-gray-500 mb-6">
-     {otpHelpText}
+      <p className="text-center text-gray-500 mb-6">
+        {otpHelpText}
       </p>
-     <div className="flex justify-center gap-2 md:gap-3 mb-3 flex-wrap">
+      <div className="flex justify-center gap-2 md:gap-3 mb-3 flex-wrap max-w-[200px] md:max-w-full mx-auto md:flex-nowrap">
         {otp.map((digit, index) => (
           <input
             key={index}
-           id={`otp-${index}`}
+            id={`otp-${index}`}
             type="text"
             maxLength={1}
-           value={digit}
+            value={digit}
             onChange={(e) => handleChange(e.target.value, index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className="mb-2 w-10 h-10 text-center text-xl font-medium border border-[#A1B0CC] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-blue-500 md:w-14 md:h-14 md:text-2xl md:rounded-[15px]"
@@ -132,27 +131,27 @@ const OTPPage = () => {
         ))}
       </div>
       {apiError ? <div className="text-red-500 text-sm mb-2">{apiError}</div> : null}
-<div className=" mb-6 mt-6">
- <p className="text-center text-lg text-teal-700 mb-2 mt=12">
-            {formatTime(seconds)}
-      </p>
-    <button
-  onClick={() => setSeconds(60)}
-  disabled={seconds > 0}
-  className={`
+      <div className=" mb-6 mt-6">
+        <p className="text-center text-lg text-teal-700 mb-2 mt=12">
+          {formatTime(seconds)}
+        </p>
+        <button
+          onClick={() => setSeconds(60)}
+          disabled={seconds > 0}
+          className={`
      w-full flex justify-center mb-6
     ${seconds > 0 ? 'text-gray-400 font-normal cursor-not-allowed' : 'text-black font-semibold'}
   `}
->
-  <p className="text-center text-sm ">
-    Send Again
-  </p>
-</button>
-</div>
-            <PrimaryButton onClick={handleVerify} className={isSubmitting ? 'opacity-70 pointer-events-none' : ''}>
-              VERIFY
-            </PrimaryButton>
-      
+        >
+          <p className="text-center text-sm ">
+            Send Again
+          </p>
+        </button>
+      </div>
+      <PrimaryButton onClick={handleVerify} className={isSubmitting ? 'opacity-70 pointer-events-none' : ''}>
+        VERIFY
+      </PrimaryButton>
+
     </AuthLayout>
   );
 };

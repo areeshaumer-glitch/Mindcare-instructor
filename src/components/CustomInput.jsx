@@ -18,11 +18,9 @@ function CustomInput({ label, withToggle = false, ...props }) {
           {...field}
           {...props}
           type={inputType}
-          className={`w-full px-4 py-2 border ${
-            meta.touched && meta.error ? 'border-red-500' : 'border-[#A1B0CC]'
-          } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder-gray-400 ${
-            shouldShowToggle ? 'pr-10' : ''
-          }`}
+          className={`w-full md:w-[390px] h-[48px] px-4 py-2 border ${meta.touched && meta.error ? 'border-red-500' : 'border-[#A1B0CC]'
+            } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder-gray-400 opacity-100 rotate-0 ${shouldShowToggle ? 'pr-10' : ''
+            }`}
         />
         {shouldShowToggle ? (
           <button

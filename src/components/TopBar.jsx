@@ -12,7 +12,7 @@ const TopBar = ({ onClick, onMenuClick }) => {
   const userData = useAuthStore((s) => s.userData);
   const token = useAuthStore((s) => s.token);
   const profileVersion = useAuthStore((s) => s.profileVersion);
-const [notifications, setNotifications] = useState([
+  const [notifications, setNotifications] = useState([
     { id: 1, text: 'Notification received', time: 'Today | 09:24 AM', isNew: true },
     { id: 2, text: 'New message from John', time: 'Today | 08:15 AM', isNew: true },
     { id: 3, text: 'System update completed', time: 'Today | 07:30 AM', isNew: true },
@@ -97,7 +97,7 @@ const [notifications, setNotifications] = useState([
             <img src={displayImage} className="w-10 h-10 rounded-full" alt="User Avatar" />
             <div className="flex flex-col justify-center min-w-0 max-w-[180px] sm:max-w-none">
               <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
-              <p className="text-xs text-green-600 truncate">{displayRole}</p>
+              <p className="text-xs flex justify-start text-green-600 truncate">{displayRole}</p>
             </div>
           </button>
 
@@ -113,7 +113,7 @@ const [notifications, setNotifications] = useState([
           </button>
         </div>
       </div>
-       <NotificationModal
+      <NotificationModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         notifications={notifications}

@@ -25,26 +25,26 @@ export default function SignIn() {
         const isPhone = /^\+?[0-9]{7,15}$/.test(raw);
         return isEmail || isPhone;
       }),
-  password: Yup.string()
-  .min(8, 'Min 8 chars with upper, lower, number & symbol')
-  .matches(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\\^&\\*]).{8,}$/,
-    'Min 8 chars with upper, lower, number & symbol'
-  )
-  .required('Password is required'),
+    password: Yup.string()
+      .min(8, 'Min 8 chars with upper, lower, number & symbol')
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\\^&\\*]).{8,}$/,
+        'Min 8 chars with upper, lower, number & symbol'
+      )
+      .required('Password is required'),
   });
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   const handleForgotPassword = () => {
     navigate('/forgot-password');
   };
 
   return (
-   <AuthLayout
-     title="Welcome Back"
-     leftTitle="Welcome back to MindCare"
-     leftDescription="Sign in to create workout plans, manage videos, and track attendance."
-   >
+    <AuthLayout
+      title="Welcome Back"
+      leftTitle="Welcome back to MindCare"
+      leftDescription="Sign in to create workout plans, manage videos, and track attendance."
+    >
       <Formik
         initialValues={{ email: '', password: '' }}
         validationSchema={loginValidationSchema}
@@ -94,20 +94,20 @@ export default function SignIn() {
 
               navigate('/home/dashboard');
             },
-            onError: () => {},
+            onError: () => { },
           });
 
           setSubmitting(false);
         }}
       >
         {({ isSubmitting }) => (
-          <Form className="space-y-4">
+          <Form className="space-y-3">
             <CustomInput name="email" type="text" placeholder="Email or phone" />
             <CustomInput name="password" type="password" placeholder="Password" withToggle />
             <div className="flex justify-end">
-              <button 
+              <button
                 onClick={handleForgotPassword}
-              type="button" className="text-md text-[#8E8E93] hover:text-gray-700 mb-5"  >
+                type="button" className="text-md text-[#8E8E93] hover:text-gray-700 mb-5"  >
                 Forgot Password?
               </button>
             </div>
@@ -115,8 +115,8 @@ export default function SignIn() {
           </Form>
         )}
       </Formik>
-      
-        
+
+
     </AuthLayout>
   );
 }

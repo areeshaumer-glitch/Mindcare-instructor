@@ -15,8 +15,12 @@ import {
   MyProfile
 } from "./Pages/PagesList";
 
+import { MdError } from "react-icons/md";
+import { IoMdClose } from "react-icons/io";
+
 function ToastHost() {
   const [toasts, setToasts] = useState([]);
+
   useEffect(() => {
     const handler = (e) => {
       const detail = e?.detail || {};
@@ -35,16 +39,50 @@ function ToastHost() {
       window.removeEventListener("app:toast", handler);
     };
   }, []);
+
   return (
-    <div className="fixed top-4 right-4 z-[1000] space-y-2">
+    <div className="fixed top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
+        <style>{`
+          @keyframes shrink {
+            from { width: 100%; }
+            to { width: 0%; }
+          }
+        `}</style>
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`px-4 py-3 rounded-lg  text-sm ${
-            t.type === "error" ? " border border-[2px] border-red-500 bg-white text-red-500" : "bg-teal-600 text-white"
-          }`}
+          className="pointer-events-auto relative w-[300px] bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100 flex flex-col"
         >
-          {t.message}
+          <div className="flex items-center p-4 gap-3">
+            {/* Icon */}
+            <div className="text-red-500 text-2xl shrink-0">
+               {/* Currently only handling error style as per request image, but keeping type check if needed later or generic */}
+               {t.type === 'success' ? <div className="w-6 h-6 rounded-full bg-green-500" /> : <MdError />}
+            </div>
+            
+            {/* Message */}
+            <div className="text-gray-600 font-medium text-sm flex-1 leading-tight">
+              {t.message}
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== t.id))}
+              className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+            >
+              <IoMdClose size={20} />
+            </button>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="h-1.5 w-full bg-red-100">
+             <div
+                className="h-full bg-red-400 origin-left"
+                style={{
+                  animation: 'shrink 4000ms linear forwards'
+                }}
+             />
+          </div>
         </div>
       ))}
     </div>

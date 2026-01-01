@@ -9,6 +9,7 @@ const TrackAttendence = () => {
   const navigate = useNavigate();
   const userData = useAuthStore((s) => s.userData);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [hasSelectedDate, setHasSelectedDate] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [rows, setRows] = useState([]);
   const [apiError, setApiError] = useState('');
@@ -202,14 +203,14 @@ const TrackAttendence = () => {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-  
+
     const days = [];
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
-    
+
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(day);
@@ -222,6 +223,7 @@ const TrackAttendence = () => {
     if (day) {
       const newDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day);
       setSelectedDate(newDate);
+      setHasSelectedDate(true);
       setShowCalendar(false);
     }
   };
@@ -308,20 +310,29 @@ const TrackAttendence = () => {
   }, [loadAttendance]);
 
   return (
-    <> 
+    <>
       <div className=" bg-white p-4 rounded-2xl">
         <div className="w-full mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h1 className="text-2xl md:text- font-semibold text-teal-600">Track Attendance </h1>
-            
+
             {/* Date Selector */}
             <div className="relative">
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
                 className="flex items-center justify-between gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors min-w-[220px]"
               >
-                <span className="text-gray-500">Select Date</span>
+                <span className={hasSelectedDate ? "text-gray-700 font-medium" : "text-gray-500"}>
+                  {hasSelectedDate
+                    ? selectedDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })
+                    : 'Select Date'
+                  }
+                </span>
                 <Calendar className="w-4 h-4 text-gray-500" />
               </button>
 
@@ -355,16 +366,15 @@ const TrackAttendence = () => {
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="grid grid-cols-7 gap-1">
                     {generateCalendar().map((day, index) => (
                       <button
                         key={index}
                         onClick={() => handleDateSelect(day)}
-                        className={`h-8 text-sm rounded hover:bg-teal-100 transition-colors ${
-                          day === selectedDate.getDate() ? 'bg-teal-600 text-white hover:bg-teal-700' : 
+                        className={`h-8 text-sm rounded hover:bg-teal-100 transition-colors ${day === selectedDate.getDate() ? 'bg-teal-600 text-white hover:bg-teal-700' :
                           day ? 'text-gray-700 hover:bg-gray-100' : ''
-                        }`}
+                          }`}
                         disabled={!day}
                       >
                         {day}
@@ -485,9 +495,8 @@ const TrackAttendence = () => {
                 type="button"
                 onClick={handleSendFeedback}
                 disabled={isSendingFeedback}
-                className={`block ml-auto w-40 px-[56px] py-2 rounded-full transition ${
-                  isSendingFeedback ? 'bg-teal-400 text-white cursor-not-allowed' : 'bg-teal-600 text-white hover:bg-teal-700'
-                }`}
+                className={`block ml-auto w-40 px-[56px] py-2 rounded-full transition ${isSendingFeedback ? 'bg-teal-400 text-white cursor-not-allowed' : 'bg-teal-600 text-white hover:bg-teal-700'
+                  }`}
               >
                 {isSendingFeedback ? 'Sending...' : 'Send'}
               </button>
