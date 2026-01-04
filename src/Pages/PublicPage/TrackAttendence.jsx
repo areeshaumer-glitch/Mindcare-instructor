@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, ChevronDown } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Method, callApi, emitToast } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
@@ -14,6 +14,7 @@ const TrackAttendence = () => {
   const [rows, setRows] = useState([]);
   const [apiError, setApiError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackRow, setFeedbackRow] = useState(null);
   const [feedbackComment, setFeedbackComment] = useState('');
@@ -70,93 +71,17 @@ const TrackAttendence = () => {
     return false;
   }, []);
 
-  const findAppointmentId = useCallback(
-    (value) => {
-      const walk = (current, depth = 0) => {
-        if (depth > 5) return '';
-        if (!current) return '';
-        if (typeof current === 'string' || typeof current === 'number') return '';
-        if (Array.isArray(current)) {
-          for (const item of current) {
-            const found = walk(item, depth + 1);
-            if (found) return found;
-          }
-          return '';
-        }
-        if (typeof current !== 'object') return '';
-
-        const direct =
-          current?.appointmentId ||
-          current?.appointmentID ||
-          current?.appointment_id ||
-          current?.appointment?.id ||
-          current?.appointment?._id ||
-          current?.sessionId ||
-          current?.sessionID ||
-          current?.session_id ||
-          '';
-        if (direct && looksLikeId(direct)) return String(direct).trim();
-
-        for (const [k, v] of Object.entries(current)) {
-          const key = String(k || '').toLowerCase();
-          if (key.includes('appointment') || key.includes('session')) {
-            if ((typeof v === 'string' || typeof v === 'number') && looksLikeId(v)) return String(v).trim();
-            if (v && typeof v === 'object') {
-              const nestedDirect = v?.id || v?._id || v?.appointmentId || v?.sessionId || '';
-              if (nestedDirect && looksLikeId(nestedDirect)) return String(nestedDirect).trim();
-            }
-          }
-        }
-
-        for (const nestedValue of Object.values(current)) {
-          const found = walk(nestedValue, depth + 1);
-          if (found) return found;
-        }
-        return '';
-      };
-
-      return walk(value, 0);
-    },
-    [looksLikeId],
-  );
-
   const extractArrayFromApiResponse = (res) => {
+    if (Array.isArray(res)) return res;
     if (Array.isArray(res?.data)) return res.data;
     if (Array.isArray(res?.data?.data)) return res.data.data;
+    if (Array.isArray(res?.items)) return res.items;
+    if (Array.isArray(res?.data?.items)) return res.data.items;
+    if (Array.isArray(res?.docs)) return res.docs;
+    if (Array.isArray(res?.data?.docs)) return res.data.docs;
     if (Array.isArray(res?.result)) return res.result;
     if (Array.isArray(res?.payload)) return res.payload;
     return [];
-  };
-
-  const resolveAppointmentIdForUser = async (userId) => {
-    const rawUserId = String(userId || '').trim();
-    if (!rawUserId) return '';
-
-    const params = new URLSearchParams();
-    if (endDate) params.set('startDate', endDate);
-    if (endDate) params.set('endDate', endDate);
-    params.set('page', '1');
-    params.set('limit', '50');
-    params.set('userId', rawUserId);
-
-    const endPoint = `${api.attendanceMeHistory}?${params.toString()}`;
-
-    const res = await new Promise((resolve) => {
-      callApi({
-        method: Method.GET,
-        endPoint,
-        onSuccess: (data) => resolve(data),
-        onError: () => resolve(null),
-      });
-    });
-
-    const list = extractArrayFromApiResponse(res);
-    for (const item of list) {
-      const id = findAppointmentId(item);
-      if (id) return id;
-    }
-
-    return findAppointmentId(res);
   };
 
   const loadAttendance = useCallback(async () => {
@@ -167,17 +92,11 @@ const TrackAttendence = () => {
       method: Method.GET,
       endPoint: buildSummaryEndpoint(),
       onSuccess: (res) => {
-        const list =
-          (Array.isArray(res?.data) && res.data) ||
-          (Array.isArray(res?.data?.data) && res.data.data) ||
-          (Array.isArray(res?.result) && res.result) ||
-          (Array.isArray(res?.payload) && res.payload) ||
-          [];
+        const list = extractArrayFromApiResponse(res);
 
         const mappedRows = list.map((item, index) => ({
           key: item?.userId || item?._id || item?.id || String(index),
           userId: item?.userId || item?.user?._id || item?.user?.id || item?._id || item?.id || '',
-          appointmentId: findAppointmentId(item),
           name: item?.name || item?.user?.name || 'Name Here',
           avatar: item?.avatar || item?.profileImage || item?.image || '',
           absentPct: Number(item?.stats?.percentAbsent ?? 0),
@@ -194,7 +113,7 @@ const TrackAttendence = () => {
     });
 
     setIsLoading(false);
-  }, [buildSummaryEndpoint, findAppointmentId]);
+  }, [buildSummaryEndpoint]);
 
   const generateCalendar = () => {
     const year = selectedDate.getFullYear();
@@ -266,24 +185,10 @@ const TrackAttendence = () => {
 
     setIsSendingFeedback(true);
     try {
-      const userId = String(feedbackRow?.userId || feedbackRow?.key || '').trim();
-      let appointmentId = String(feedbackRow?.appointmentId || '').trim();
-
-      if (!appointmentId && userId) {
-        appointmentId = await resolveAppointmentIdForUser(userId);
-      }
-
-      const appointmentIdToSend = String(appointmentId || '').trim();
-      if (!appointmentIdToSend) {
-        emitToast('Appointment not found.', 'error');
-        return;
-      }
-
       const bodyParams = {
-        type: 'session',
+        type: 'gym',
         comment,
         rating: 4,
-        appointmentId: appointmentIdToSend,
         instructorProfileId,
       };
 
@@ -292,7 +197,11 @@ const TrackAttendence = () => {
           method: Method.POST,
           endPoint: api.feedback,
           bodyParams,
-          onSuccess: (res) => resolve(res),
+          showToast: false,
+          onSuccess: (res) => {
+            emitToast('Feedback submitted', 'success');
+            resolve(res);
+          },
           onError: (err) => reject(new Error(err?.message || 'Failed to submit feedback. Please try again.')),
         });
       });
@@ -308,6 +217,21 @@ const TrackAttendence = () => {
   useEffect(() => {
     void loadAttendance();
   }, [loadAttendance]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [rows]);
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(rows.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentRows = rows.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <>
@@ -388,10 +312,10 @@ const TrackAttendence = () => {
 
           {/* Attendance Table */}
           <div className="bg-white">
-            <div className="overflow-x-auto">
-              <div className="min-w-[760px]">
+            <div className="overflow-x-auto pb-2">
+              <div className="min-w-[1000px] lg:min-w-0">
                 <div className="text-white rounded-xl" style={{ backgroundColor: "#008080" }}>
-                  <div className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg">
+                  <div className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_1fr] gap-4 p-4 font-semibold text-lg whitespace-nowrap">
                     <div className="text-left">Name</div>
                     <div className="text-left">Absent</div>
                     <div className="text-left">Attend from Gym</div>
@@ -406,7 +330,7 @@ const TrackAttendence = () => {
                   ) : rows.length === 0 ? (
                     <div className="p-6 text-center text-gray-600">No attendance records found.</div>
                   ) : (
-                    rows.map((row) => (
+                    currentRows.map((row) => (
                       <div key={row.key} className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_1fr] gap-4 p-6 items-center">
                         <div className="text-left">
                           <div className="flex items-center gap-3 min-w-0">
@@ -425,8 +349,8 @@ const TrackAttendence = () => {
                               className="font-medium text-gray-700 text-lg truncate"
                               title={row?.name || ''}
                             >
-                              {row?.name && row.name.length > 15
-                                ? row.name.substring(0, 15) + "..."
+                              {row?.name && row.name.length > 13
+                                ? row.name.substring(0, 13) + "..."
                                 : (row?.name || 'Name Here')}
                             </p>
                           </div>
@@ -472,13 +396,46 @@ const TrackAttendence = () => {
                 </div>
               </div>
             </div>
+
+            {/* Pagination Controls */}
+            {rows.length > 0 && (
+              <div className="flex items-center justify-end px-6 py-4 border-t border-gray-100 gap-4">
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`p-2 rounded-lg border transition-colors ${
+                      currentPage === 1
+                        ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`p-2 rounded-lg border transition-colors ${
+                      currentPage === totalPages
+                        ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {isFeedbackOpen ? (
         <div
-          className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center z-50 p-4"
           onClick={closeFeedback}
         >
           <div
@@ -490,7 +447,7 @@ const TrackAttendence = () => {
 
               <textarea
                 placeholder="Add Feedback"
-                className="w-full p-4 border border-gray-300 rounded-lg mb-4 min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full p-4 border border-gray-300 rounded-lg mb-4 min-h-[150px] resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
                 value={feedbackComment}
                 onChange={(e) => setFeedbackComment(e.target.value)}
               />
@@ -501,7 +458,7 @@ const TrackAttendence = () => {
                 type="button"
                 onClick={handleSendFeedback}
                 disabled={isSendingFeedback}
-                className={`block ml-auto w-40 px-[56px] py-2 rounded-full transition ${isSendingFeedback ? 'opacity-50 text-white cursor-not-allowed' : 'text-white hover:opacity-90'
+                className={`block ml-auto w-[244px] h-[48px] rounded-full transition ${isSendingFeedback ? 'opacity-50 text-white cursor-not-allowed' : 'text-white hover:opacity-90'
                   }`}
                 style={{ backgroundColor: "#008080" }}
               >

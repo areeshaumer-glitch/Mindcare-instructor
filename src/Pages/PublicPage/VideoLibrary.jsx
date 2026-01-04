@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Upload, Play, Trash2, X, ArrowLeft } from "lucide-react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { Upload, Play, Trash2, X, ArrowLeft, Loader2 } from "lucide-react";
 import { listS3Files, uploadVideoOnS3 } from "../../utils/function";
 import { Method, callApi } from "../../network/NetworkManager";
 import { api } from "../../network/Environment";
-
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 const VideoLibrary = () => {
-  const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
+  const MAX_VIDEO_BYTES = 5 * 1024 * 1024;
   const [videos, setVideos] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -19,6 +20,10 @@ const VideoLibrary = () => {
   const [isEditUploading, setIsEditUploading] = useState(false);
   const [playbackError, setPlaybackError] = useState("");
   const [isResolvingPlayback, setIsResolvingPlayback] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
+  const ffmpegRef = useRef(new FFmpeg());
+  const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
 
   const [uploadForm, setUploadForm] = useState({
     title: "",
@@ -37,6 +42,76 @@ const VideoLibrary = () => {
     description: false,
     file: false,
   });
+
+  const loadFFmpeg = useCallback(async () => {
+    if (ffmpegLoaded) return true;
+    const ffmpeg = ffmpegRef.current;
+    ffmpeg.on('log', ({ message }) => {
+      console.log('FFmpeg:', message);
+    });
+    ffmpeg.on('progress', ({ progress }) => {
+        setCompressionProgress(Math.round(progress * 100));
+    });
+    
+    try {
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd';
+        await ffmpeg.load({
+            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+        setFfmpegLoaded(true);
+        return true;
+    } catch (error) {
+        console.error('Failed to load FFmpeg:', error);
+        setApiError("Failed to load video compression component. Please reload the page.");
+        return false;
+    }
+  }, [ffmpegLoaded]);
+
+  const compressVideo = useCallback(async (file) => {
+    if (!file) return null;
+    const loaded = await loadFFmpeg();
+    if (!loaded) return null;
+
+    setIsCompressing(true);
+    setCompressionProgress(0);
+    const ffmpeg = ffmpegRef.current;
+
+    try {
+        const { name } = file;
+        await ffmpeg.writeFile(name, await fetchFile(file));
+        
+        // Compression command: scale to 720p, crf 28 (lower quality/size), fast preset
+        await ffmpeg.exec([
+            '-i', name,
+            '-vf', "scale='min(1280,iw)':-2",
+            '-c:v', 'libx264',
+            '-crf', '28',
+            '-preset', 'faster',
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            'output.mp4'
+        ]);
+
+        const data = await ffmpeg.readFile('output.mp4');
+        const compressedBlob = new Blob([data.buffer], { type: 'video/mp4' });
+        const compressedFile = new File([compressedBlob], name, { type: 'video/mp4' });
+        
+        // Cleanup
+        try {
+          await ffmpeg.deleteFile(name);
+          await ffmpeg.deleteFile('output.mp4');
+        } catch (e) {}
+        
+        setIsCompressing(false);
+        return compressedFile;
+    } catch (error) {
+        console.error('Compression failed:', error);
+        setApiError("Video compression failed.");
+        setIsCompressing(false);
+        return null;
+    }
+  }, [loadFFmpeg]);
 
   const uploadVideoToS3 = useCallback(async (file) => {
     return await new Promise((resolve, reject) => {
@@ -480,16 +555,36 @@ const VideoLibrary = () => {
     setUploadForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('video/')) {
       if (file.size > MAX_VIDEO_BYTES) {
-        setUploadForm((prev) => ({
-          ...prev,
-          file: null,
-          fileName: "",
-        }));
-        setApiError("File is too large. Please upload a video under 5 MB.");
+        setApiError(`File is large (${(file.size / 1024 / 1024).toFixed(1)}MB). Compressing...`);
+        const compressed = await compressVideo(file);
+
+        if (compressed) {
+          if (compressed.size > MAX_VIDEO_BYTES) {
+            setApiError("File is still too large after compression. Please choose a smaller video.");
+            setUploadForm((prev) => ({
+              ...prev,
+              file: null,
+              fileName: "",
+            }));
+          } else {
+            setApiError("");
+            setUploadForm((prev) => ({
+              ...prev,
+              file: compressed,
+              fileName: compressed.name,
+            }));
+          }
+        } else {
+            setUploadForm((prev) => ({
+              ...prev,
+              file: null,
+              fileName: "",
+            }));
+        }
         return;
       }
       setUploadForm(prev => ({
@@ -591,16 +686,36 @@ const VideoLibrary = () => {
     setShowEditModal(true);
   };
 
-  const handleEditFileUpload = (e) => {
+  const handleEditFileUpload = async (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('video/')) {
       if (file.size > MAX_VIDEO_BYTES) {
-        setEditForm((prev) => ({
-          ...prev,
-          file: null,
-          fileName: prev.fileName || "",
-        }));
-        setApiError("File is too large. Please upload a video under 5 MB.");
+        setApiError(`File is large (${(file.size / 1024 / 1024).toFixed(1)}MB). Compressing...`);
+        const compressed = await compressVideo(file);
+
+        if (compressed) {
+          if (compressed.size > MAX_VIDEO_BYTES) {
+            setApiError("File is still too large after compression. Please choose a smaller video.");
+            setEditForm((prev) => ({
+              ...prev,
+              file: null,
+              fileName: prev.fileName || "",
+            }));
+          } else {
+            setApiError("");
+            setEditForm((prev) => ({
+              ...prev,
+              file: compressed,
+              fileName: compressed.name,
+            }));
+          }
+        } else {
+             setEditForm((prev) => ({
+              ...prev,
+              file: null,
+              fileName: prev.fileName || "",
+            }));
+        }
         return;
       }
       setEditForm(prev => ({
@@ -925,13 +1040,23 @@ const VideoLibrary = () => {
                   onChange={handleFileUpload}
                   className="hidden"
                   id="video-upload"
+                  disabled={isCompressing}
                 />
                 <label
                   htmlFor="video-upload"
-                  className={`w-full border-2 ${isUploadAttempted && !uploadForm.fileName && uploadErrors.file ? 'border-red-500' : 'border-dashed border-teal-300'} text-teal-600 px-4 py-3 rounded-lg hover:bg-teal-50 transition cursor-pointer flex items-center justify-center gap-2`}
+                  className={`w-full border-2 ${isUploadAttempted && !uploadForm.fileName && uploadErrors.file ? 'border-red-500' : 'border-dashed border-teal-300'} text-teal-600 px-4 py-3 rounded-lg hover:bg-teal-50 transition cursor-pointer flex items-center justify-center gap-2 ${isCompressing ? 'opacity-50 cursor-wait' : ''}`}
                 >
-                  <Upload className="w-5 h-5" />
-                  {uploadForm.fileName || "Upload File"}
+                  {isCompressing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Compressing... {compressionProgress}%
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5" />
+                      {uploadForm.fileName || "Upload File"}
+                    </>
+                  )}
                 </label>
                 {isUploadAttempted && !uploadForm.fileName && uploadErrors.file && (
                   <p className="text-red-500 text-sm mt-1">Please upload a video file</p>

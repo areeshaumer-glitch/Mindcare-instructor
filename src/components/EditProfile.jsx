@@ -142,6 +142,14 @@ const EditProfile = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0] || null;
     if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      setErrorMessage('Only JPG and PNG images are allowed.');
+      return;
+    }
+
     setErrorMessage('');
     setSuccessMessage('');
     setSelectedFile(file);
@@ -282,7 +290,7 @@ const EditProfile = () => {
         {/* Hidden file input */}
         <input
           type="file"
-          accept="image/*"
+          accept="image/png, image/jpeg, image/jpg"
           onChange={handleImageUpload}
           className="hidden"
           ref={fileInputRef}

@@ -344,12 +344,13 @@ export const callApi = async ({
         axiosError.code === "NETWORK_ERROR" ||
         axiosError.message.includes("Network Error")
       ) {
-        onError &&
-          onError({
-            message:
-              "Network connection failed. Please check your internet connection.",
-          });
-        if (showToast) emitToast("Network connection failed. Please check your internet connection.");
+        const isUpload = multipart || endPoint.includes("upload") || endPoint.includes("s3");
+        const msg = isUpload
+          ? "Upload failed. The file may be too large or your connection was interrupted."
+          : "Network connection failed. Please check your internet connection.";
+        
+        onError && onError({ message: msg });
+        if (showToast) emitToast(msg);
       } else if (axiosError.response) {
         const serverError = axiosError.response.data as ApiResponse;
         onError && onError(serverError);

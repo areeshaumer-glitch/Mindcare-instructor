@@ -10,9 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@tailwindcss/vite": "^4.1.7",
-    "axios": "^1.7.9",
     "autoprefixer": "^10.4.21",
+    "axios": "^1.7.9",
     "formik": "^2.4.6",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
@@ -20,8 +23,8 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.1",
     "tailwindcss": "^4.1.16",
-    "zustand": "^4.5.5",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

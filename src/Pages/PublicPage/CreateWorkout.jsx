@@ -324,17 +324,29 @@ const CreateWorkout = () => {
 
   const validateExerciseForm = () => {
     const newErrors = {};
+    const repErrors = {};
+    let hasRepError = false;
+
     if (exerciseForm.selectedDays.length === 0) {
       newErrors.days = 'Please select at least one day';
     }
 
     exerciseForm.exercises.forEach(exercise => {
       exercise.sets.forEach(set => {
-        if (!Array.isArray(set.reps) || set.reps.some(r => r.trim() === '')) {
-          newErrors.sets = 'All rep fields must be filled';
+        if (Array.isArray(set.reps)) {
+          set.reps.forEach((r, idx) => {
+            if (String(r).trim() === '') {
+              repErrors[`${set.id}-${idx}`] = true;
+              hasRepError = true;
+            }
+          });
         }
       });
     });
+
+    if (hasRepError) {
+      newErrors.reps = repErrors;
+    }
 
     return newErrors;
   };
@@ -648,26 +660,27 @@ const CreateWorkout = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {workoutPlans.map(plan => (
                   <div
                     key={plan._id || plan.id}
-                    className="bg-white rounded-lg overflow-hidden shadow-md cursor-pointer hover:shadow-lg transition"
-                    style={{ width: '327px', height: '181px', transform: 'rotate(0deg)', opacity: 1 }}
+                    className="bg-white rounded-lg overflow-hidden shadow-md cursor-pointer hover:shadow-lg transition w-full"
                     onClick={() => handleEdit(plan)}
                   >
                     {/* Image Section */}
-                    <div className="h-[181px] bg-gray-200 relative overflow-hidden">
+                    <div className="relative overflow-hidden bg-gray-200 h-[160px] sm:h-[181px] md:h-[200px] lg:h-[220px]">
                       <img
                         src={plan.coverImageUrl || images.chest}
                         alt="Workout Plan"
-                        className="w-full h-full object-cover object-fill"
+                        className="w-full h-full object-cover"
                       />
 
                       {/* Bottom Overlay Content */}
                       <div className="absolute bottom-0 left-0 right-0 bg-trasparent bg-opacity-40 text-white px-4 py-2 flex justify-between items-center">
                         <div className="text-sm font-medium">{plan.name}</div>
-                        <div className="text-sm">{(plan.selectedDays?.length || plan.days?.length || 0)} Days</div>
+                        <div className="text-sm">
+                          {(plan.selectedDays?.length || plan.days?.length || 0)} {(plan.selectedDays?.length || plan.days?.length || 0) === 1 ? 'Day' : 'Days'}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -715,9 +728,16 @@ const CreateWorkout = () => {
                   }`}
               >
                 <option value="">Select</option>
-                <option value="Chest">Chest</option>
-                <option value="Body">Body</option>
-                <option value="Cardio">Cardio</option>
+                <option value="chest">Chest</option>
+                <option value="full_body">Full Body</option>
+                <option value="upper_body">Upper Body</option>
+                <option value="lower_body">Lower Body</option>
+                <option value="core">Core</option>
+                <option value="back">Back</option>
+                <option value="shoulders">Shoulders</option>
+                <option value="arms">Arms</option>
+                <option value="legs">Legs</option>
+                <option value="glutes">Glutes</option>
               </select>
 
               {/* Duration */}
@@ -744,9 +764,13 @@ const CreateWorkout = () => {
                   }`}
               >
                 <option value="">Select</option>
-                <option value="Weight Loss">Weight Loss</option>
-                <option value="Muscle Gain">Muscle Gain</option>
-                <option value="Endurance">Endurance</option>
+                <option value="weight_loss">Weight Loss</option>
+                <option value="muscle_gain">Muscle Gain</option>
+                <option value="endurance">Endurance</option>
+                <option value="strength">Strength</option>
+                <option value="flexibility">Flexibility</option>
+                <option value="mobility">Mobility</option>
+                <option value="rehab">Rehab</option>
               </select>
 
               {/* Prompt */}
@@ -794,12 +818,12 @@ const CreateWorkout = () => {
 
               <h2 className="text-xl font-semibold mb-6">Exercises</h2>
 
-              <div className="flex flex-1 overflow-hidden">
+              <div className="flex flex-1 overflow-hidden max-[470px]:flex-col">
                 {/* Days Selection */}
-                <div className="w-32 mr-6">
+                <div className="w-32 mr-6 max-[470px]:w-full max-[470px]:mr-0 max-[470px]:flex max-[470px]:flex-wrap max-[470px]:gap-3">
                   {[1, 2, 3, 4, 5, 6, 7].map(day => (
-                    <div key={day} className="mb-4">
-                      <label className="flex items-center cursor-pointer">
+                    <div key={day} className="mb-4 max-[470px]:mb-0">
+                      <label className="flex items-center cursor-pointer max-[470px]:mr-3">
                         <input
                           type="checkbox"
                           checked={exerciseForm.selectedDays.includes(day)}
@@ -821,7 +845,7 @@ const CreateWorkout = () => {
                 </div>
 
                 {/* Exercises */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto max-[470px]:mt-4">
 
                   {exerciseForm.exercises.map((exercise, index) => (
                     <div key={exercise.id} className="mb-10">
@@ -838,7 +862,7 @@ const CreateWorkout = () => {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-4 mb-4">
+                      <div className="flex items-center gap-4 mb-4 max-[470px]:flex-col max-[470px]:items-start">
                         <div className="flex items-center gap-2">
                           {[1, 2, 3].map((i) => (
                             <img
@@ -853,7 +877,7 @@ const CreateWorkout = () => {
                         <button
                           type="button"
                           onClick={addExercise}
-                          className="text-teal-700 text-sm flex items-center gap-2 hover:text-teal-800"
+                          className="text-teal-700 text-sm flex items-center gap-2 hover:text-teal-800 max-[470px]:mt-2"
                         >
                           <RotateCcw size={16} />
                           Regenerate
@@ -886,7 +910,7 @@ const CreateWorkout = () => {
                                     onChange={(e) =>
                                       updateExerciseSet(exercise.id, set.id, repIndex, e.target.value)
                                     }
-                                    className={`border rounded-md px-3 py-1 w-24 text-sm focus:outline-none focus:border-teal-700 ${exerciseErrors.sets ? 'border-red-500' : 'border-gray-300'
+                                    className={`border rounded-md px-3 py-1 w-24 text-sm focus:outline-none focus:border-teal-700 ${exerciseErrors.reps?.[`${set.id}-${repIndex}`] ? 'border-red-500' : 'border-gray-300'
                                       }`}
                                   />
                                 </div>
@@ -996,7 +1020,7 @@ const CreateWorkout = () => {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center gap-4 mb-4 max-[470px]:flex-col max-[470px]:items-start">
                       <div className="flex items-center gap-2">
                         {[1, 2, 3].map((i) => (
                           <img
@@ -1011,7 +1035,7 @@ const CreateWorkout = () => {
                       <button
                         type="button"
                         onClick={addExercise}
-                        className="text-teal-700 text-sm flex items-center gap-2 hover:text-teal-800"
+                        className="text-teal-700 text-sm flex items-center gap-2 hover:text-teal-800 max-[470px]:mt-2"
                       >
                         <RotateCcw size={16} />
                         Regenerate
@@ -1046,7 +1070,7 @@ const CreateWorkout = () => {
                                     onChange={(e) =>
                                       updateExerciseSet(exercise.id, set.id, repIndex, e.target.value)
                                     }
-                                    className={`border rounded-md px-3 py-1 w-24 text-sm focus:outline-none focus:border-teal-700 ${exerciseErrors.sets ? 'border-red-500' : 'border-gray-300'
+                                    className={`border rounded-md px-3 py-1 w-24 text-sm focus:outline-none focus:border-teal-700 ${exerciseErrors.reps?.[`${set.id}-${repIndex}`] ? 'border-red-500' : 'border-gray-300'
                                       }`}
                                   />
                                 </div>
