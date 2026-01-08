@@ -284,7 +284,7 @@ const EditProfile = () => {
   };
 
   return (
-    <div className="w-full p-8">
+    <div className="w-full">
       <div className="space-y-6 w-full max-w-2xl">
 
         {/* Hidden file input */}
@@ -297,7 +297,7 @@ const EditProfile = () => {
         />
 
         {/* Profile header row */}
-        <div className="flex items-center justify-between w-full max-w-[600px]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full max-w-[600px] gap-4">
           <div className="flex items-center gap-5">
             <button onClick={handleButtonClick} className="hover:opacity-80 transition-opacity">
               {imagePreviewUrl ? (
@@ -327,7 +327,7 @@ const EditProfile = () => {
 
           <button
             onClick={handleButtonClick}
-            className="px-6 py-2 rounded-xl font-medium transition-all hover:bg-gray-50 bg-white"
+            className="px-6 py-2 rounded-xl font-medium transition-all hover:bg-gray-50 bg-white w-full sm:w-auto"
             style={{ border: "1px solid #0E4E95", color: "#333" }}
             disabled={isLoading || isSaving}
           >
@@ -361,12 +361,9 @@ const EditProfile = () => {
         {/* Save Changes button at the right end */}
         <div className="flex justify-end pt-0">
           <button
-            className="text-white font-semibold transition-all hover:opacity-90 disabled:opacity-50 shadow-md"
+            className="text-white font-semibold transition-all hover:opacity-90 disabled:opacity-50 shadow-md w-full max-w-[332px] h-[50px] rounded-xl"
             style={{
               backgroundColor: "#008080",
-              width: "332px",
-              height: "50px",
-              borderRadius: "12px"
             }}
             onClick={handleSaveChanges}
             disabled={isLoading || isSaving}

@@ -66,6 +66,7 @@ const PrivacyPolicy = () => {
     void callApi({
       method: Method.GET,
       endPoint: api.privacyPolicy,
+      showToast: false,
       onSuccess: (res) => {
         if (!isMounted) return;
         const payload = res?.data?.data ?? res?.data ?? res ?? null;

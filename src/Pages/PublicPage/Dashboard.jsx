@@ -239,9 +239,9 @@ const Dashboard = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {workoutCards.map((item) => (
-            <div key={item.id} className="rounded-xl overflow-hidden shadow-md relative bg-black/60">
-              <img src={item.thumbnail} alt="Thumbnail" className="w-full h-40 object-cover opacity-100" />
-              <div className="absolute bottom-2 left-2 text-white text-sm">{item.title}</div>
+            <div key={item.id} className="rounded-xl overflow-hidden shadow-md relative bg-black/60 h-[181px]">
+              <img src={item.thumbnail} alt="Thumbnail" className="w-full h-full object-cover opacity-100" />
+              <div className="absolute bottom-2 left-2 text-white text-sm">{item.title.length > 7 ? item.title.substring(0, 8) + '...' : item.title}</div>
               <div className="absolute bottom-2 right-2 text-white text-xs">{item.duration}</div>
             </div>
           ))}

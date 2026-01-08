@@ -95,6 +95,12 @@ const CreateWorkout = () => {
     };
   }, [currentModal, showDeleteModal]);
 
+  useEffect(() => {
+    if (currentModal === 'edit') {
+      window.scrollTo(0, 0);
+    }
+  }, [currentModal]);
+
   const [createForm, setCreateForm] = useState({
     name: '',
     targetArea: '',
@@ -660,7 +666,7 @@ const CreateWorkout = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {workoutPlans.map(plan => (
                   <div
                     key={plan._id || plan.id}
@@ -668,7 +674,7 @@ const CreateWorkout = () => {
                     onClick={() => handleEdit(plan)}
                   >
                     {/* Image Section */}
-                    <div className="relative overflow-hidden bg-gray-200 h-[160px] sm:h-[181px] md:h-[200px] lg:h-[220px]">
+                    <div className="relative overflow-hidden bg-gray-200 h-[181px]">
                       <img
                         src={plan.coverImageUrl || images.chest}
                         alt="Workout Plan"
@@ -677,7 +683,7 @@ const CreateWorkout = () => {
 
                       {/* Bottom Overlay Content */}
                       <div className="absolute bottom-0 left-0 right-0 bg-trasparent bg-opacity-40 text-white px-4 py-2 flex justify-between items-center">
-                        <div className="text-sm font-medium">{plan.name}</div>
+                        <div className="text-sm font-medium">{(plan.name || '').length > 20 ? (plan.name || '').substring(0, 8) + '...' : plan.name}</div>
                         <div className="text-sm">
                           {(plan.selectedDays?.length || plan.days?.length || 0)} {(plan.selectedDays?.length || plan.days?.length || 0) === 1 ? 'Day' : 'Days'}
                         </div>
@@ -969,10 +975,10 @@ const CreateWorkout = () => {
 
         {/* EDIT FULL PAGE (not modal) */}
         {currentModal === 'edit' && editingPlan && (
-          <div className="w-full max-w-5xl mx-auto mt-6 p-8 rounded-2xl z-10 overflow-hidden">
-            <h2 className="text-2xl font-semibold mb-6">Exercises</h2>
+          <div className="w-full max-w-5xl mx-auto mt-4 p-5 rounded-2xl z-10 overflow-hidden">
+            <h2 className="text-2xl font-semibold mb-4">Exercises</h2>
 
-            <div className="flex gap-6">
+            <div className="flex gap-4">
               {/* Days Selection */}
               <div className="w-32">
                 {[1, 2, 3, 4, 5, 6, 7].map((day) => (
@@ -1003,9 +1009,9 @@ const CreateWorkout = () => {
               </div>
 
               {/* Exercises */}
-              <div className="flex-1 overflow-y-auto">
+              <div className={`flex-1 ${exerciseForm.exercises.length > 1 ? 'overflow-y-auto' : ''}`}>
                 {exerciseForm.exercises.map((exercise, index) => (
-                  <div key={exercise.id} className="mb-10">
+                  <div key={exercise.id} className="mb-6">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-gray-800">{exercise.name}</h3>
                       {index > 0 && (

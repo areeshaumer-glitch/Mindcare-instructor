@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { Method, callApi } from '../network/NetworkManager';
@@ -27,6 +27,19 @@ const AttendenceHistory = () => {
   const [rows, setRows] = useState([]);
   const [apiError, setApiError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const calendarRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
@@ -183,7 +196,7 @@ const AttendenceHistory = () => {
             <h1 className="text-2xl font-semibold" style={{ color: "#008080" }}>Attendance History</h1>
 
             {/* Date Selector */}
-            <div className="relative">
+            <div className="relative" ref={calendarRef}>
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
                 className="flex items-center justify-between gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors min-w-[220px]"

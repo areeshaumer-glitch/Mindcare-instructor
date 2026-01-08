@@ -66,7 +66,7 @@ const ChangePassword = () => {
   };
 
   return (
-    <div className="w-full p-8">
+    <div className="w-full">
       <div className="space-y-6 w-full max-w-2xl">
         <div className="text-left">
           <h1 className="text-3xl font-semibold mb-2" style={{ color: "#333" }}>Change Password</h1>
@@ -133,12 +133,9 @@ const ChangePassword = () => {
 
         <div className="flex justify-end pt-4">
           <button
-            className="text-white font-semibold transition-all hover:opacity-90 disabled:opacity-50 shadow-md"
+            className="text-white font-semibold transition-all hover:opacity-90 disabled:opacity-50 shadow-md w-full max-w-[332px] h-[50px] rounded-xl"
             style={{
               backgroundColor: "#008080",
-              width: "332px",
-              height: "50px",
-              borderRadius: "12px"
             }}
             onClick={handleSubmit}
             disabled={isSaving}

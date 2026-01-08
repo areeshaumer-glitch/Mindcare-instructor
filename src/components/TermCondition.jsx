@@ -70,6 +70,7 @@ const TermCondition = () => {
       headers: {
         "Accept-Language": acceptLanguage,
       },
+      showToast: false,
       onSuccess: (res) => {
         if (!isMounted) return;
         const payload = res?.data?.data ?? res?.data ?? res ?? null;
