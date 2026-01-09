@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Minus, X, Check, Trash2, Edit3, RotateCcw, ArrowLeft } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import images from '../../assets/Images';
 import { Method, callApi } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
 const CreateWorkout = () => {
   const WORKOUTS_STORAGE_KEY = 'mindcare-instructor.workoutPlans';
+  const location = useLocation();
+  const [navOpenedKey, setNavOpenedKey] = useState('');
   const [currentModal, setCurrentModal] = useState(null); // null, 'create', 'exercises', 'edit'
   const [workoutPlans, setWorkoutPlans] = useState([]);
   const [editingPlan, setEditingPlan] = useState(null);
@@ -141,6 +144,7 @@ const CreateWorkout = () => {
   const validateCreateForm = () => {
     const newErrors = {};
     if (!createForm.name.trim()) newErrors.name = 'Plan name is required';
+    if (createForm.name.length > 50) newErrors.name = 'Plan name cannot exceed 50 characters';
     if (createForm.targetArea.length < 3) newErrors.targetArea = 'Please select Target areas';
     if (!createForm.duration.trim()) newErrors.duration = 'Duration is required';
     if (!createForm.goalType.trim()) newErrors.goalType = 'Goal type is required';
@@ -445,7 +449,7 @@ const CreateWorkout = () => {
 
   };
 
-  const handleEdit = (plan) => {
+  const handleEdit = useCallback((plan) => {
     const normalized = normalizeWorkoutPlan(plan);
     setEditingPlan(normalized);
     setCreateForm({
@@ -544,7 +548,19 @@ const CreateWorkout = () => {
     }
 
     setCurrentModal('edit');
-  };
+  }, [normalizeWorkoutPlan]);
+
+  useEffect(() => {
+    const workoutId = location?.state?.editWorkoutId;
+    if (!workoutId) return;
+    if (String(navOpenedKey) === String(location?.key || '')) return;
+
+    const match = workoutPlans.find((p) => String(p?._id || p?.id) === String(workoutId));
+    if (!match) return;
+
+    handleEdit(match);
+    setNavOpenedKey(String(location?.key || ''));
+  }, [handleEdit, location?.key, location?.state?.editWorkoutId, navOpenedKey, workoutPlans]);
 
   const handleDelete = (plan) => {
     const key = plan?._id || plan?.id;
@@ -683,7 +699,12 @@ const CreateWorkout = () => {
 
                       {/* Bottom Overlay Content */}
                       <div className="absolute bottom-0 left-0 right-0 bg-trasparent bg-opacity-40 text-white px-4 py-2 flex justify-between items-center">
-                        <div className="text-sm font-medium">{(plan.name || '').length > 20 ? (plan.name || '').substring(0, 8) + '...' : plan.name}</div>
+                        <div
+                          className="text-sm font-medium"
+                          title={(plan.name || "").length > 15 ? plan.name : undefined}
+                        >
+                          {(plan.name || '').length > 15 ? (plan.name || '').substring(0, 8) + '...' : plan.name}
+                        </div>
                         <div className="text-sm">
                           {(plan.selectedDays?.length || plan.days?.length || 0)} {(plan.selectedDays?.length || plan.days?.length || 0) === 1 ? 'Day' : 'Days'}
                         </div>
@@ -710,14 +731,19 @@ const CreateWorkout = () => {
 
               <h2 className="text-xl font-semibold mb-4">Create Workout Plan</h2>
 
-              {/* Plan Name */}
-              <label className={`block mt-2 mb-1 text-sm ${createErrors.name ? 'text-red-500' : ''}`}>
-                Plan Name
-              </label>
+              <div className="flex justify-between items-center mt-2 mb-1">
+                <label className={`text-sm ${createErrors.name ? 'text-red-500' : ''}`}>
+                  Plan Name
+                </label>
+                <span className={`text-xs ${createForm.name.length >= 50 ? 'text-red-500' : 'text-gray-400'}`}>
+                  {createForm.name.length}/50
+                </span>
+              </div>
               <input
                 type="text"
                 placeholder="Name Here"
                 value={createForm.name}
+                maxLength={50}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                 className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${createErrors.name ? 'border-red-500' : 'border-gray-300'
                   }`}

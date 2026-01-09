@@ -199,7 +199,8 @@ const AttendenceHistory = () => {
             <div className="relative" ref={calendarRef}>
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
-                className="flex items-center justify-between gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors min-w-[220px]"
+                className="flex items-center justify-between gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors min-w-[220px] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                style={{ outline: 'none', boxShadow: 'none' }}
               >
                 <span className={selectedYmd ? "text-gray-700 font-medium" : "text-gray-500"}>
                   {selectedYmd
@@ -221,7 +222,8 @@ const AttendenceHistory = () => {
                   <div className="flex items-center justify-between mb-4">
                     <button
                       onClick={() => navigateMonth(-1)}
-                      className="p-1 hover:bg-gray-100 rounded"
+                      className="p-1 hover:bg-gray-100 rounded focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                      style={{ outline: 'none', boxShadow: 'none' }}
                     >
                       <ChevronDown className="w-4 h-4 rotate-90" />
                     </button>
@@ -230,7 +232,8 @@ const AttendenceHistory = () => {
                     </h3>
                     <button
                       onClick={() => navigateMonth(1)}
-                      className="p-1 hover:bg-gray-100 rounded"
+                      className="p-1 hover:bg-gray-100 rounded focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                      style={{ outline: 'none', boxShadow: 'none' }}
                     >
                       <ChevronDown className="w-4 h-4 -rotate-90" />
                     </button>
@@ -246,19 +249,36 @@ const AttendenceHistory = () => {
                   </div>
 
                   <div className="grid grid-cols-7 gap-1">
-                    {generateCalendar().map((day, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleDateSelect(day)}
-                        className={`h-8 text-sm rounded hover:bg-[#00808020] transition-colors ${selectedYmd && day === selectedDate.getDate() ? 'text-white hover:opacity-90' :
-                          day ? 'text-gray-700 hover:bg-gray-100' : ''
-                          }`}
-                        style={selectedYmd && day === selectedDate.getDate() ? { backgroundColor: "#008080" } : {}}
-                        disabled={!day}
-                      >
-                        {day}
-                      </button>
-                    ))}
+                    {generateCalendar().map((day, index) => {
+                      const dateToCheck = day ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day) : null;
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const isFuture = dateToCheck && dateToCheck > today;
+                      const selectedStyle =
+                        selectedYmd && day === selectedDate.getDate()
+                          ? { backgroundColor: '#008080' }
+                          : {};
+
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => handleDateSelect(day)}
+                          className={`h-8 text-sm rounded transition-colors ${
+                            selectedYmd && day === selectedDate.getDate()
+                              ? 'text-white hover:opacity-90'
+                              : day
+                              ? isFuture
+                                ? 'text-gray-300 cursor-default pointer-events-none'
+                                : 'text-gray-700 hover:bg-gray-100 hover:bg-[#00808020]'
+                              : ''
+                          } focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0`}
+                          style={{ outline: 'none', boxShadow: 'none', ...selectedStyle }}
+                          disabled={!day || isFuture}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

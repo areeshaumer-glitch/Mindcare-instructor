@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import images from '../../assets/Images';
 import { Method, callApi } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [workouts, setWorkouts] = useState([]);
   const [videos, setVideos] = useState([]);
-  const [activeVideoIndex, setActiveVideoIndex] = useState(null);
   const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const [apiError, setApiError] = useState('');
@@ -68,6 +69,22 @@ const Dashboard = () => {
 
     setIsLoadingWorkouts(false);
   }, [extractArray, normalizeWorkoutPlan]);
+
+  const openWorkoutPage = useCallback(
+    (workoutId) => {
+      if (!workoutId) return;
+      navigate('/home/create-workout', { state: { editWorkoutId: workoutId } });
+    },
+    [navigate],
+  );
+
+  const openVideoPage = useCallback(
+    (videoId) => {
+      if (!videoId) return;
+      navigate('/home/video-library', { state: { editVideoId: videoId } });
+    },
+    [navigate],
+  );
 
   const isVideoFileName = useCallback((value) => {
     if (typeof value !== 'string') return false;
@@ -138,12 +155,15 @@ const Dashboard = () => {
       return {
         id: item?._id || item?.id || item?.videoId || cleanedKey || `${index}`,
         title: String(item?.title || item?.name || fileName).trim(),
+        description: String(item?.description || '').trim(),
         fileName,
         s3Key: isHttpUrl ? cleanedKey : (cleanedKey || cleanedUrl),
         fileUrl: isHttpUrl ? cleanedUrl : '',
         videoUrl: isHttpUrl ? cleanedUrl : '',
         thumbnailUrl: cleanUrl(item?.thumbnailUrl || item?.thumbUrl || item?.thumbnail || ''),
         durationSeconds: item?.durationSeconds,
+        tags: Array.isArray(item?.tags) ? item.tags : [],
+        isActive: typeof item?.isActive === 'boolean' ? item.isActive : true,
       };
     },
     [cleanUrl, getNameFromKeyOrUrl],
@@ -193,20 +213,13 @@ const Dashboard = () => {
   const workoutCards = useMemo(() => {
     return workouts.map((plan) => {
       const dayCount =
-        Number.isFinite(Number(plan?.duration)) && Number(plan.duration) > 0
-          ? Number(plan.duration)
-          : Array.isArray(plan?.selectedDays) && plan.selectedDays.length > 0
-            ? plan.selectedDays.length
-            : Array.isArray(plan?.days)
-              ? plan.days.length
-              : 0;
+        Array.isArray(plan?.selectedDays) && plan.selectedDays.length > 0
+          ? plan.selectedDays.length
+          : Array.isArray(plan?.days)
+            ? plan.days.length
+            : 0;
 
-      const durationLabel =
-        typeof plan?.duration === 'string' && plan.duration.trim()
-          ? plan.duration
-          : dayCount > 0
-            ? `${dayCount} Day`
-            : '';
+      const durationLabel = `${dayCount} ${dayCount === 1 ? 'Day' : 'Days'}`;
 
       const cover = cleanUrl(plan?.coverImageUrl) || images.chest;
       return {
@@ -228,7 +241,7 @@ const Dashboard = () => {
   }, [videos]);
   return (
     <div className="w-full">
-      <h2 className="text-xl font-semibold mb-4">Dashboard</h2>
+      <h2 className="text-xl font-semibold mb-4">My Workouts</h2>
 
 
 
@@ -239,9 +252,18 @@ const Dashboard = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {workoutCards.map((item) => (
-            <div key={item.id} className="rounded-xl overflow-hidden shadow-md relative bg-black/60 h-[181px]">
+            <div 
+              key={item.id} 
+              className="rounded-xl overflow-hidden shadow-md relative bg-black/60 h-[181px] cursor-pointer"
+              onClick={() => openWorkoutPage(item.id)}
+            >
               <img src={item.thumbnail} alt="Thumbnail" className="w-full h-full object-cover opacity-100" />
-              <div className="absolute bottom-2 left-2 text-white text-sm">{item.title.length > 7 ? item.title.substring(0, 8) + '...' : item.title}</div>
+              <div
+                className="absolute bottom-2 left-2 text-white text-sm"
+                title={item.title.length > 15 ? item.title : undefined}
+              >
+                {item.title.length > 15 ? item.title.substring(0, 8) + '...' : item.title}
+              </div>
               <div className="absolute bottom-2 right-2 text-white text-xs">{item.duration}</div>
             </div>
           ))}
@@ -259,43 +281,33 @@ const Dashboard = () => {
             <div
               key={item.id || index}
               className="rounded-xl overflow-hidden shadow-md relative bg-black/60"
-              onClick={() => setActiveVideoIndex((prev) => (prev === index ? null : index))}
+              onClick={() => openVideoPage(item.id)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') setActiveVideoIndex((prev) => (prev === index ? null : index));
+                if (e.key === 'Enter' || e.key === ' ') openVideoPage(item.id);
               }}
             >
-              {activeVideoIndex === index && item.videoUrl ? (
-                <video src={item.videoUrl} autoPlay controls className="w-full h-40 object-cover" />
+              {item.thumbnail ? (
+                <img src={item.thumbnail} alt="Thumbnail" className="w-full h-40 object-cover opacity-100" />
+              ) : item.videoUrl ? (
+                <video
+                  src={item.videoUrl}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-40 object-cover"
+                />
               ) : (
-                <>
-                  {item.thumbnail ? (
-                    <img src={item.thumbnail} alt="Thumbnail" className="w-full h-40 object-cover opacity-100" />
-                  ) : item.videoUrl ? (
-                    <video
-                      src={item.videoUrl}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="w-full h-40 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-40 bg-black/50" />
-                  )}
-                  {item.videoUrl ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <img src={images.start} alt="Play" className="w-8 h-8" />
-                    </div>
-                  ) : null}
-                </>
+                <div className="w-full h-40 bg-black/50" />
               )}
 
-              <div className="absolute bottom-2 left-2 text-white text-sm">{item.title}</div>
+              <div className="absolute bottom-2 left-2 text-white text-sm">{item.title.length > 8 ? item.title.substring(0, 8) + '...' : item.title}</div>
             </div>
           ))}
         </div>
       )}
+
     </div>
   );
 };
