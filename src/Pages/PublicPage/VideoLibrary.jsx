@@ -642,6 +642,8 @@ const VideoLibrary = () => {
         isActive: true,
       };
 
+      console.log('Upload BodyParams:', bodyParams);
+
       await new Promise((resolve, reject) => {
         callApi({
           method: Method.POST,
@@ -797,6 +799,8 @@ const VideoLibrary = () => {
         tags: Array.isArray(selectedVideo?.tags) ? selectedVideo.tags : [],
         isActive: typeof selectedVideo?.isActive === "boolean" ? selectedVideo.isActive : true,
       };
+
+      console.log('Update BodyParams:', bodyParams);
 
       await new Promise((resolve, reject) => {
         callApi({
