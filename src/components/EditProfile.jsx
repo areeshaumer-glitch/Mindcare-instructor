@@ -308,15 +308,11 @@ const EditProfile = () => {
                   style={{ borderColor: "#008080" }}
                 />
               ) : (
-                <div
-                  className="w-24 h-24 rounded-full flex items-center justify-center bg-purple-100 overflow-hidden"
-                >
-                  <img
-                    src={images.camera}
-                    alt="Profile"
-                    className="w-12 h-12 object-contain opacity-50"
-                  />
-                </div>
+                <img
+                  src={images.defaultAvatar}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                />
               )}
             </button>
             <div className="flex flex-col">

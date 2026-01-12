@@ -56,7 +56,7 @@ const TopBar = ({ onClick, onMenuClick }) => {
     userData?.profile?.fullName ||
     userData?.phone ||
     'Name Here';
-  const rawImage = profile?.profileImage || "https://i.pravatar.cc/40";
+  const rawImage = profile?.profileImage || images.defaultAvatar;
   const displayImage = (() => {
     if (!rawImage || typeof rawImage !== 'string') return rawImage;
     if (rawImage.startsWith('blob:') || rawImage.startsWith('data:')) return rawImage;

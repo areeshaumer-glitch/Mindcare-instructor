@@ -14,6 +14,7 @@ import thumb3 from './thumb3.png';
 import empty from './empty.png';
 import excer from './excer.png';
 import locate from './locate.png';
+import defaultAvatar from './default_avatar.svg';
 const images = {
   therapyImage,
   camera,
@@ -30,7 +31,8 @@ const images = {
   thumb3,
   empty,
   excer,
-  locate
+  locate,
+  defaultAvatar
 };
 
 export default images;
