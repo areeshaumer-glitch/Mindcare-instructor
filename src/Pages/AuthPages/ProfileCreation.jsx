@@ -49,7 +49,7 @@ const ProfileCreation = () => {
             <div className="flex justify-center items-center mb-6">
               <label htmlFor="imageUpload" className="cursor-pointer">
                 <img
-                  src={image || images.camera}
+                  src={image || images.defaultAvatar}
                   alt="Upload"
                   className={`w-[120px] h-[120px] rounded-full ${
                     image ? 'border-2 border-teal-700 object-fill' : 'object-contain'

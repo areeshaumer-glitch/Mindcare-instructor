@@ -5,7 +5,7 @@ import * as Yup from 'yup';
 import PrimaryButton from '../../components/PrimaryButton';
 import CustomInput from '../../components/CustomInput';
 import AuthLayout from '../../layout/AuthLayout';
-import { Method, callApi } from '../../network/NetworkManager';
+import { Method, callApi, emitToast } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
 import { useAuthStore } from '../../store/authSlice';
 
@@ -58,6 +58,7 @@ export default function SignIn() {
               email: values.email,
               password: values.password,
             },
+            showToast: false,
             onSuccess: (response) => {
               const accessToken =
                 response?.accessToken ||
@@ -77,6 +78,17 @@ export default function SignIn() {
                 response?.data?.data?.user ||
                 response?.data?.profile?.user;
 
+              const roleRaw =
+                (user && (user.role || user.userRole || user.type)) ||
+                (response?.data?.profile && (response.data.profile.role || response.data.profile.type)) ||
+                '';
+              const role = String(roleRaw || '').toLowerCase();
+
+              if (role.includes('therapist')) {
+                emitToast('Please login with instructor profile');
+                return;
+              }
+
               if (typeof accessToken === 'string' && accessToken.length > 0) {
                 setToken(accessToken);
               }
@@ -92,9 +104,18 @@ export default function SignIn() {
                 return;
               }
 
+              emitToast('Signin successful.', 'success');
               navigate('/home/dashboard');
             },
-            onError: () => { },
+            onError: (err) => {
+              const message =
+                err?.message ||
+                err?.data?.message ||
+                err?.response?.data?.message ||
+                'Invalid credentials';
+              setApiError(message);
+              emitToast(message);
+            },
           });
 
           setSubmitting(false);
