@@ -54,7 +54,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
-  if (token) {
+  if (token && config.url !== api.refreshToken) {
     config.headers = config.headers || {};
     config.headers['authorization'] = `Bearer ${token}`;
   }
