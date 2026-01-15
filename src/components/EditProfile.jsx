@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import images from '../assets/Images';
-import { Method, callApi } from '../network/NetworkManager';
+import { Method, callApi, emitToast } from '../network/NetworkManager';
 import { api } from '../network/Environment';
 import { listS3Files, uploadImageOnS3 } from '../utils/function';
 import { useAuthStore } from '../store/authSlice';
@@ -144,9 +144,18 @@ const EditProfile = () => {
     if (!file) return;
 
     // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Only image files are allowed.');
+      emitToast('Only image files are allowed.', 'error');
+      e.target.value = '';
+      return;
+    }
+
     const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
       setErrorMessage('Only JPG and PNG images are allowed.');
+      emitToast('Only JPG and PNG images are allowed.', 'error');
+      e.target.value = '';
       return;
     }
 
@@ -304,8 +313,8 @@ const EditProfile = () => {
                 <img
                   src={withCacheBuster(imagePreviewUrl)}
                   alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover border-2"
-                  style={{ borderColor: "#008080" }}
+                  className="w-24 h-24 rounded-full object-cover "
+                 
                 />
               ) : (
                 <img

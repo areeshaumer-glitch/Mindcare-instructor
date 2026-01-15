@@ -5,6 +5,7 @@ import PrimaryButton from '../../components/PrimaryButton';
 import images from '../../assets/Images';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { emitToast } from '../../network/NetworkManager';
 
 const ProfileCreationSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
@@ -16,10 +17,22 @@ const ProfileCreation = () => {
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setImage(imageUrl);
+    if (!file) return;
+
+    const type = String(file.type || '').toLowerCase();
+    const name = String(file.name || '').toLowerCase();
+    const isImageType = type.startsWith('image/');
+    const ext = name.split('.').pop();
+    const isImageExtension = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext || '');
+
+    if (!isImageType && !isImageExtension) {
+      emitToast('Only image files can be selected as profile photo.', 'error');
+      event.target.value = '';
+      return;
     }
+
+    const imageUrl = URL.createObjectURL(file);
+    setImage(imageUrl);
   };
 
   useEffect(() => {
@@ -33,6 +46,7 @@ const ProfileCreation = () => {
       title="Complete Your Profile"
       leftTitle="Set up your instructor profile"
       leftDescription="Add a profile photo and name to continue."
+      leftWidthClass="md:w-[820px]"
     >
       <p className="text-center text-gray-500 mb-6">
         Add your profile photo and full name so trainees can recognize you.
@@ -52,7 +66,7 @@ const ProfileCreation = () => {
                   src={image || images.defaultAvatar}
                   alt="Upload"
                   className={`w-[120px] h-[120px] rounded-full ${
-                    image ? 'border-2 border-teal-700 object-fill' : 'object-contain'
+                    image ? ' object-fill' : 'object-contain'
                   }`}
                 />
                 <input

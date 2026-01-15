@@ -29,6 +29,18 @@ const VideoLibrary = () => {
   const ffmpegRef = useRef(new FFmpeg());
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
 
+  useEffect(() => {
+    if (showUploadModal) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev || "";
+      };
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [showUploadModal]);
+
   const [uploadForm, setUploadForm] = useState({
     title: "",
     description: "",
@@ -600,7 +612,12 @@ const VideoLibrary = () => {
         fileName: file.name
       }));
     } else {
-      alert('Please select a video file');
+      setApiError("Please select a video file");
+      setUploadForm((prev) => ({
+        ...prev,
+        file: null,
+        fileName: "",
+      }));
     }
   };
 
@@ -749,7 +766,12 @@ const VideoLibrary = () => {
         fileName: file.name
       }));
     } else {
-      alert('Please select a video file');
+      setApiError("Please select a video file");
+      setEditForm((prev) => ({
+        ...prev,
+        file: null,
+        fileName: prev.fileName || "",
+      }));
     }
   };
 
@@ -1118,7 +1140,7 @@ const VideoLibrary = () => {
                   </div>
                 </div>
                 {isUploadAttempted && uploadErrors.description && (
-                  <p className="text-red-500 text-sm mt-1">Please enter a description</p>
+                  <p className="text-red-500 text-sm">Please enter a description</p>
                 )}
               </div>
 

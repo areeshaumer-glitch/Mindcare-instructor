@@ -5,12 +5,13 @@ const AuthLayout = ({
   title = "Welcome",
   leftTitle = "MindCare Instructor",
   leftDescription = "Sign in to manage workout plans, videos, and attendance.",
+  leftWidthClass = "md:w-[910px]",
   children,
 }) => {
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-full overflow-hidden">
       {/* Left Section (Image) */}
-      <div className="relative w-full md:w-[910px] h-[48vh] md:h-auto overflow-hidden opacity-100 rotate-0">
+      <div className={`relative w-full h-[48vh] md:h-auto overflow-hidden opacity-100 rotate-0 ${leftWidthClass}`}>
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${images.therapyImage})` }}

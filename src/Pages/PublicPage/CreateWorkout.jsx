@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, Minus, X, Check, Trash2, Edit3, RotateCcw, ArrowLeft } from 'lucide-react';
+import { Plus, Minus, X, Check, Trash2, Edit3, RotateCcw, ArrowLeft, ChevronDown } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import images from '../../assets/Images';
 import { Method, callApi } from '../../network/NetworkManager';
@@ -111,6 +111,29 @@ const CreateWorkout = () => {
     goalType: '',
     prompt: '',
   });
+  const targetAreaOptions = [
+    { value: 'chest', label: 'Chest' },
+    { value: 'full_body', label: 'Full Body' },
+    { value: 'upper_body', label: 'Upper Body' },
+    { value: 'lower_body', label: 'Lower Body' },
+    { value: 'core', label: 'Core' },
+    { value: 'back', label: 'Back' },
+    { value: 'shoulders', label: 'Shoulders' },
+    { value: 'arms', label: 'Arms' },
+    { value: 'legs', label: 'Legs' },
+    { value: 'glutes', label: 'Glutes' },
+  ];
+  const goalTypeOptions = [
+    { value: 'weight_loss', label: 'Weight Loss' },
+    { value: 'muscle_gain', label: 'Muscle Gain' },
+    { value: 'endurance', label: 'Endurance' },
+    { value: 'strength', label: 'Strength' },
+    { value: 'flexibility', label: 'Flexibility' },
+    { value: 'mobility', label: 'Mobility' },
+    { value: 'rehab', label: 'Rehab' },
+  ];
+  const [isTargetAreaOpen, setIsTargetAreaOpen] = useState(false);
+  const [isGoalTypeOpen, setIsGoalTypeOpen] = useState(false);
   const [createErrors, setCreateErrors] = useState({});
 
   const [exerciseForm, setExerciseForm] = useState({
@@ -152,17 +175,56 @@ const CreateWorkout = () => {
     return newErrors;
   };
 
-  const handleCreateSubmit = () => {
+  const handleCreateSubmit = async () => {
     setApiError('');
-    resetExerciseForm();
-    setExerciseErrors({});
     const validationErrors = validateCreateForm();
     if (Object.keys(validationErrors).length > 0) {
       setCreateErrors(validationErrors);
       return;
     }
-    setCurrentModal('exercises');
     setCreateErrors({});
+
+    const bodyParams = {
+      name: createForm.name.trim(),
+      targetArea: createForm.targetArea,
+      duration: createForm.duration,
+      goalType: createForm.goalType,
+      prompt: createForm.prompt,
+      location: 'At Home',
+      equipment: 'with_equipment',
+    };
+
+    setIsSaving(true);
+    await callApi({
+      method: Method.POST,
+      endPoint: api.workoutsAi,
+      bodyParams,
+      onSuccess: (response) => {
+        const list = extractWorkoutPlans(response).map(normalizeWorkoutPlan);
+        if (Array.isArray(list) && list.length > 0) {
+          const createdPlan = list[list.length - 1];
+          setWorkoutPlans((prev) => {
+            const existingIds = new Set(prev.map((p) => p._id || p.id));
+            const merged = [
+              ...prev,
+              ...list.filter((p) => {
+                const key = p._id || p.id;
+                return key ? !existingIds.has(key) : true;
+              }),
+            ];
+            return merged;
+          });
+          if (createdPlan) {
+            handleEdit(createdPlan);
+          }
+        }
+        resetCreateForm();
+      },
+      onError: (error) => {
+        setApiError(error?.message || 'Failed to create AI workout plan. Please try again.');
+      },
+    });
+    setIsSaving(false);
   };
 
   const resetCreateForm = () => {
@@ -749,28 +811,55 @@ const CreateWorkout = () => {
                   }`}
               />
 
-              {/* Target Area */}
               <label className={`block mt-2 mb-1 text-sm ${createErrors.targetArea ? 'text-red-500' : 'text-black-500'}`}>
                 Target Area
               </label>
-              <select
-                value={createForm.targetArea}
-                onChange={(e) => setCreateForm({ ...createForm, targetArea: e.target.value })}
-                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${createErrors.targetArea ? 'border-red-500' : 'border-gray-300'
+              <div className="relative mb-1">
+                <button
+                  type="button"
+                  onClick={() => setIsTargetAreaOpen((v) => !v)}
+                  className={`w-full border rounded-md px-3 py-2 flex items-center justify-between text-sm focus:outline-none ${
+                    createErrors.targetArea ? 'border-red-500' : 'border-gray-300'
                   }`}
-              >
-                <option value="">Select</option>
-                <option value="chest">Chest</option>
-                <option value="full_body">Full Body</option>
-                <option value="upper_body">Upper Body</option>
-                <option value="lower_body">Lower Body</option>
-                <option value="core">Core</option>
-                <option value="back">Back</option>
-                <option value="shoulders">Shoulders</option>
-                <option value="arms">Arms</option>
-                <option value="legs">Legs</option>
-                <option value="glutes">Glutes</option>
-              </select>
+                >
+                  <span className={createForm.targetArea ? 'text-gray-900' : 'text-gray-400'}>
+                    {createForm.targetArea
+                      ? (targetAreaOptions.find((o) => o.value === createForm.targetArea)?.label || 'Select')
+                      : 'Select'}
+                  </span>
+                  <ChevronDown className="ml-2 w-4 h-4 text-gray-600" />
+                </button>
+                {isTargetAreaOpen && (
+                  <div
+                    className={`absolute left-0 right-0 mt-1 rounded-md bg-white shadow-lg z-10 border ${
+                      createErrors.targetArea ? 'border-red-500' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="max-h-36 overflow-y-auto">
+                      {targetAreaOptions.map((option) => {
+                        const isSelected = createForm.targetArea === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setCreateForm({ ...createForm, targetArea: option.value });
+                              setIsTargetAreaOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm ${
+                              isSelected
+                                ? 'bg-teal-700 text-white'
+                                : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Duration */}
               <label className={`block mt-2 mb-1 text-sm ${createErrors.duration ? 'text-red-500' : 'text-black-500'}`}>
@@ -785,25 +874,55 @@ const CreateWorkout = () => {
                   }`}
               />
 
-              {/* Goal Type */}
               <label className={`block mt-2 mb-1 text-sm ${createErrors.goalType ? 'text-red-500' : 'text-black-500'}`}>
                 Goal Type
               </label>
-              <select
-                value={createForm.goalType}
-                onChange={(e) => setCreateForm({ ...createForm, goalType: e.target.value })}
-                className={`w-full border rounded-md p-2 mb-1 focus:outline-none focus:border-teal-700 ${createErrors.goalType ? 'border-red-500' : 'border-gray-300'
+              <div className="relative mb-1">
+                <button
+                  type="button"
+                  onClick={() => setIsGoalTypeOpen((v) => !v)}
+                  className={`w-full border rounded-md px-3 py-2 flex items-center justify-between text-sm focus:outline-none ${
+                    createErrors.goalType ? 'border-red-500' : 'border-gray-300'
                   }`}
-              >
-                <option value="">Select</option>
-                <option value="weight_loss">Weight Loss</option>
-                <option value="muscle_gain">Muscle Gain</option>
-                <option value="endurance">Endurance</option>
-                <option value="strength">Strength</option>
-                <option value="flexibility">Flexibility</option>
-                <option value="mobility">Mobility</option>
-                <option value="rehab">Rehab</option>
-              </select>
+                >
+                  <span className={createForm.goalType ? 'text-gray-900' : 'text-gray-400'}>
+                    {createForm.goalType
+                      ? (goalTypeOptions.find((o) => o.value === createForm.goalType)?.label || 'Select')
+                      : 'Select'}
+                  </span>
+                  <ChevronDown className="ml-2 w-4 h-4 text-gray-600" />
+                </button>
+                {isGoalTypeOpen && (
+                  <div
+                    className={`absolute left-0 right-0 mt-1 rounded-md bg-white shadow-lg z-10 border ${
+                      createErrors.goalType ? 'border-red-500' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="max-h-36 overflow-y-auto">
+                      {goalTypeOptions.map((option) => {
+                        const isSelected = createForm.goalType === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setCreateForm({ ...createForm, goalType: option.value });
+                              setIsGoalTypeOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm ${
+                              isSelected
+                                ? 'bg-teal-700 text-white'
+                                : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Prompt */}
               <label className={`block mt-2 mb-1 text-sm ${createErrors.prompt ? 'text-red-500' : ''}`}>

@@ -14,6 +14,7 @@ export const api = {
   verifyOtpForgotPassword: 'auth/verify-otp-forgot-password',
   resetPassword: 'auth/reset-password',
   workouts: 'workouts',
+  workoutsAi: 'workouts/ai',
   s3Upload: 's3/upload',
   s3List: 's3/list',
   attendanceSummary: 'attendance/summary',

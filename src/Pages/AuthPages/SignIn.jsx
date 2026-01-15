@@ -59,7 +59,7 @@ export default function SignIn() {
               password: values.password,
             },
             showToast: false,
-            onSuccess: (response) => {
+            onSuccess: async (response) => {
               const accessToken =
                 response?.accessToken ||
                 response?.data?.accessToken ||
@@ -105,7 +105,18 @@ export default function SignIn() {
               }
 
               emitToast('Signin successful.', 'success');
-              navigate('/home/dashboard');
+
+              await callApi({
+                method: Method.GET,
+                endPoint: api.instructorProfileMe,
+                showToast: false,
+                onSuccess: () => {
+                  navigate('/home/dashboard');
+                },
+                onError: () => {
+                  navigate('/create-profile');
+                },
+              });
             },
             onError: (err) => {
               const message =

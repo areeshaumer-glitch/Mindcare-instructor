@@ -241,9 +241,18 @@ const Dashboard = () => {
   }, [videos]);
   return (
     <div className="w-full">
-      <h2 className="text-xl font-semibold mb-4">My Workouts</h2>
-
-
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">My Workouts</h2>
+        {workoutCards.length > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate('/home/create-workout')}
+            className="text-sm font-medium"
+          >
+            See All
+          </button>
+        )}
+      </div>
 
       {isLoadingWorkouts ? (
         <div className="p-6 text-center text-gray-600">Loading workouts...</div>
@@ -251,7 +260,7 @@ const Dashboard = () => {
         <div className="p-6 text-center text-gray-600">No workouts found.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {workoutCards.map((item) => (
+          {workoutCards.slice(0, 6).map((item) => (
             <div 
               key={item.id} 
               className="rounded-xl overflow-hidden shadow-md relative bg-black/60 h-[181px] cursor-pointer"
@@ -270,14 +279,25 @@ const Dashboard = () => {
         </div>
       )}
 
-      <h2 className="text-xl font-semibold mb-4 mt-6">Video Library</h2>
+      <div className="flex items-center justify-between mt-6 mb-4">
+        <h2 className="text-xl font-semibold">Video Library</h2>
+        {videoCards.length > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate('/home/video-library')}
+            className="text-sm  font-medium"
+          >
+            See All
+          </button>
+        )}
+      </div>
       {isLoadingVideos ? (
         <div className="p-6 text-center text-gray-600">Loading videos...</div>
       ) : videoCards.length === 0 ? (
         <div className="p-6 text-center text-gray-600">No videos found.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {videoCards.map((item, index) => (
+          {videoCards.slice(0, 6).map((item, index) => (
             <div
               key={item.id || index}
               className="rounded-xl overflow-hidden shadow-md relative bg-black/60"

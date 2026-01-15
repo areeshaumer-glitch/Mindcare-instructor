@@ -45,7 +45,7 @@ interface ApiCallParams {
 // Configure axios defaults
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: 120000,
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -287,7 +287,6 @@ export const callApi = async ({
         const message = serverError?.message?.toLowerCase() || "";
         if (message.includes("no file uploaded")) {
           onError && onError({ message: "No file uploaded. Please select a file." });
-          if (showToast) emitToast("No file uploaded. Please select a file.");
           return;
         }
       }
@@ -296,6 +295,14 @@ export const callApi = async ({
       if (axiosError.response?.data) {
         const serverError = axiosError.response.data as ApiResponse;
         const message = serverError?.message?.toLowerCase() || "";
+
+        if (
+          message.includes("instructor profile not found") ||
+          serverError?.errorType === "INSTRUCTOR_PROFILE_NOT_FOUND"
+        ) {
+          onError && onError(serverError);
+          return;
+        }
 
         if (
           message.includes("password") ||
