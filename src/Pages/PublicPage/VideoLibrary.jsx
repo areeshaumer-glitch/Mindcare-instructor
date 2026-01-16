@@ -7,7 +7,7 @@ import { api } from "../../network/Environment";
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 const VideoLibrary = () => {
-  const MAX_VIDEO_BYTES = 5 * 1024 * 1024;
+  const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
   const location = useLocation();
   const [navOpenedKey, setNavOpenedKey] = useState("");
   const [videos, setVideos] = useState([]);
@@ -30,16 +30,16 @@ const VideoLibrary = () => {
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
 
   useEffect(() => {
-    if (showUploadModal) {
+    const anyModalOpen = showUploadModal || showEditModal || showDeleteModal;
+    if (anyModalOpen) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = prev || "";
       };
-    } else {
-      document.body.style.overflow = "";
     }
-  }, [showUploadModal]);
+    document.body.style.overflow = "";
+  }, [showUploadModal, showEditModal, showDeleteModal]);
 
   const [uploadForm, setUploadForm] = useState({
     title: "",
@@ -712,8 +712,8 @@ const VideoLibrary = () => {
       fileName: video.fileName || ""
     });
     setApiError("");
-    setShowEditModal(false);
-    setIsInlineEditing(true);
+    setShowEditModal(true);
+    setIsInlineEditing(false);
   }, []);
 
   useEffect(() => {
@@ -724,9 +724,9 @@ const VideoLibrary = () => {
     const match = videos.find((v) => String(v?.id) === String(editVideoId));
     if (!match) return;
 
-    handleEdit(match);
+    handleVideoClick(match);
     setNavOpenedKey(String(location?.key || ""));
-  }, [handleEdit, location?.key, location?.state?.editVideoId, navOpenedKey, videos]);
+  }, [handleVideoClick, location?.key, location?.state?.editVideoId, navOpenedKey, videos]);
 
   const handleEditFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -910,7 +910,7 @@ const VideoLibrary = () => {
 
       {/* Content */}
       {showVideoDetail && selectedVideo ? (
-        // Video Detail View
+        // Video Detail View (read-only, Edit opens popup)
         <div>
           <div
             className="relative mb-6"
@@ -936,95 +936,40 @@ const VideoLibrary = () => {
             <div className="text-red-500 text-sm mb-4">{playbackError}</div>
           ) : null}
 
-          {isInlineEditing ? (
-            <>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[16px] font-semibold font-['Nunito'] leading-[20px] text-gray-700 mb-2">Title</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Add Title"
-                      value={editForm.title}
-                      maxLength={60}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-3 py-2 border-0 rounded-lg focus:outline-none focus:ring-0 text-[16px] font-normal font-['Nunito'] leading-[20px] text-[#999CA0]"
-                    />
-                    <div className="text-right text-xs text-gray-400 mt-1">
-                      {editForm.title.length}/60
-                    </div>
-                  </div>
-                </div>
+          <>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">Title</h3>
+              <p className="text-gray-600 whitespace-pre-wrap break-all max-w-full">
+                {selectedVideo.title}
+              </p>
+            </div>
 
-                <div>
-                  <label className="block text-[16px] font-semibold font-['Nunito'] leading-[20px] text-gray-700 mb-2">Description</label>
-                  <div className="relative">
-                    <textarea
-                      placeholder="Add Description"
-                      rows={4}
-                      value={editForm.description}
-                      maxLength={150}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
-                      className="w-full px-3 py-2 border-0 rounded-lg focus:outline-none focus:ring-0 resize-none text-[14px] font-normal font-['Nunito'] leading-[20px] text-[#999CA0]"
-                    />
-                    <div className="text-right text-xs text-gray-400 mt-1">
-                      {editForm.description.length}/150
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">Description</h3>
+              <p className="text-gray-600 leading-relaxed whitespace-pre-wrap break-all max-w-full">
+                {selectedVideo.description}
+              </p>
+            </div>
 
-              <div className="flex flex-col sm:flex-row sm:justify-end gap-4 mt-8">
-                <button
-                  onClick={() => handleDelete(selectedVideo)}
-                  style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
-                  className="border border-teal-600 text-teal-600 hover:bg-teal-50 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
-                  type="button"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={handleEditSubmit}
-                  style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
-                  className={`bg-teal-600 text-white hover:bg-teal-700 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold ${isEditUploading ? "opacity-70 pointer-events-none" : ""}`}
-                  type="button"
-                >
-                  {isEditUploading ? "Uploading..." : "Save"}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-1">Title</h3>
-                <p className="text-gray-600 whitespace-pre-wrap break-all max-w-full">{selectedVideo.title}</p>
-              </div>
-
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-800 mb-1">Description</h3>
-                <p className="text-gray-600 leading-relaxed whitespace-pre-wrap break-all max-w-full">{selectedVideo.description}</p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:justify-end gap-4 mt-8">
-                <button
-                  onClick={() => handleDelete(selectedVideo)}
-                  style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
-                  className="border border-teal-600 text-teal-600 hover:bg-teal-50 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
-                  type="button"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => handleEdit(selectedVideo)}
-                  style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
-                  className="bg-teal-600 text-white hover:bg-teal-700 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
-                  type="button"
-                >
-                  Edit
-                </button>
-              </div>
-            </>
-          )}
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-4 mt-8">
+              <button
+                onClick={() => handleDelete(selectedVideo)}
+                style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
+                className="border border-teal-600 text-teal-600 hover:bg-teal-50 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
+                type="button"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => handleEdit(selectedVideo)}
+                style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
+                className="bg-teal-600 text-white hover:bg-teal-700 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
+                type="button"
+              >
+                Edit
+              </button>
+            </div>
+          </>
         </div>
       ) : isLoadingVideos ? (
         <div className="flex flex-col items-center justify-center mt-20">
@@ -1176,7 +1121,7 @@ const VideoLibrary = () => {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-6 justify-end">
               <button
                 onClick={closeUploadModal}
                 className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
@@ -1221,7 +1166,7 @@ const VideoLibrary = () => {
                     value={editForm.title}
                     maxLength={60}
                     onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 border-0 rounded-lg focus:outline-none focus:ring-0 text-[14px] font-normal font-['Nunito'] leading-[20px] text-[#999CA0]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 text-[14px] font-normal font-['Nunito'] leading-[20px] text-[#4B5563]"
                   />
                   <div className="text-right text-xs text-gray-400 mt-1">
                     {editForm.title.length}/60
@@ -1238,7 +1183,7 @@ const VideoLibrary = () => {
                     value={editForm.description}
                     maxLength={150}
                     onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border-0 rounded-lg focus:outline-none focus:ring-0 resize-none text-[14px] font-normal font-['Nunito'] leading-[20px] text-[#999CA0]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none text-[14px] font-normal font-['Nunito'] leading-[20px] text-[#4B5563]"
                   />
                   <div className="text-right text-xs text-gray-400 mt-1">
                     {editForm.description.length}/150
@@ -1268,16 +1213,10 @@ const VideoLibrary = () => {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={closeEditModal}
-                className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
+            <div className="flex mt-6">
               <button
                 onClick={handleEditSubmit}
-                className={`flex-1 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition ${isEditUploading ? "opacity-70 pointer-events-none" : ""}`}
+                className={`ml-auto w-[244px] h-[48px] bg-teal-600 text-white rounded-[16px] hover:bg-teal-700 transition flex items-center justify-center ${isEditUploading ? "opacity-70 pointer-events-none" : ""}`}
               >
                 {isEditUploading ? "Uploading..." : "Save"}
               </button>

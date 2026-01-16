@@ -12,6 +12,27 @@ const Dashboard = () => {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const [apiError, setApiError] = useState('');
 
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+
+    const applyOverflow = () => {
+      const width = window.innerWidth || document.documentElement.clientWidth || 0;
+      if (width >= 1024) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = prev || '';
+      }
+    };
+
+    applyOverflow();
+    window.addEventListener('resize', applyOverflow);
+
+    return () => {
+      window.removeEventListener('resize', applyOverflow);
+      document.body.style.overflow = prev || '';
+    };
+  }, []);
+
   const cleanUrl = useCallback((value) => {
     if (typeof value !== 'string') return '';
     return value.replace(/`/g, '').trim();
@@ -78,13 +99,6 @@ const Dashboard = () => {
     [navigate],
   );
 
-  const openVideoPage = useCallback(
-    (videoId) => {
-      if (!videoId) return;
-      navigate('/home/video-library', { state: { editVideoId: videoId } });
-    },
-    [navigate],
-  );
 
   const isVideoFileName = useCallback((value) => {
     if (typeof value !== 'string') return false;
@@ -240,7 +254,7 @@ const Dashboard = () => {
     });
   }, [videos]);
   return (
-    <div className="w-full">
+    <div className="w-full overflow-x-hidden overflow-y-hidden">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">My Workouts</h2>
         {workoutCards.length > 0 && (
@@ -260,7 +274,7 @@ const Dashboard = () => {
         <div className="p-6 text-center text-gray-600">No workouts found.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {workoutCards.slice(0, 6).map((item) => (
+          {workoutCards.slice(0, 3).map((item) => (
             <div 
               key={item.id} 
               className="rounded-xl overflow-hidden shadow-md relative bg-black/60 h-[181px] cursor-pointer"
@@ -297,15 +311,19 @@ const Dashboard = () => {
         <div className="p-6 text-center text-gray-600">No videos found.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {videoCards.slice(0, 6).map((item, index) => (
+          {videoCards.slice(0, 3).map((item, index) => (
             <div
               key={item.id || index}
               className="rounded-xl overflow-hidden shadow-md relative bg-black/60"
-              onClick={() => openVideoPage(item.id)}
+              onClick={() =>
+                navigate('/home/video-library', { state: { editVideoId: item.id } })
+              }
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') openVideoPage(item.id);
+                if (e.key === 'Enter' || e.key === ' ') {
+                  navigate('/home/video-library', { state: { editVideoId: item.id } });
+                }
               }}
             >
               {item.thumbnail ? (
