@@ -256,7 +256,7 @@ const Dashboard = () => {
   return (
     <div className="w-full overflow-x-hidden overflow-y-hidden">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">My Workouts</h2>
+        <h2 className="text-xl font-semibold">Recent Workouts</h2>
         {workoutCards.length > 0 && (
           <button
             type="button"

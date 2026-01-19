@@ -1,20 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Method, callApi, emitToast } from '../../network/NetworkManager';
 import { api } from '../../network/Environment';
 import { useAuthStore } from '../../store/authSlice';
+import images from '../../assets/Images';
+import AttendenceHistory from '../../components/AttendenceHistory';
 
 const TrackAttendence = () => {
-  const navigate = useNavigate();
   const userData = useAuthStore((s) => s.userData);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [hasSelectedDate, setHasSelectedDate] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [rows, setRows] = useState([]);
   const [apiError, setApiError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef(null);
+  const [rangeStart, setRangeStart] = useState(null);
+  const [rangeEnd, setRangeEnd] = useState(null);
+  const [hasSelectedRange, setHasSelectedRange] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -34,9 +36,11 @@ const TrackAttendence = () => {
   const [feedbackComment, setFeedbackComment] = useState('');
   const [feedbackError, setFeedbackError] = useState('');
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyMember, setHistoryMember] = useState(null);
 
   useEffect(() => {
-    if (!isFeedbackOpen) return;
+    if (!isFeedbackOpen && !isHistoryOpen) return;
     const prevOverflow = document.body.style.overflow;
     const prevPaddingRight = document.body.style.paddingRight;
     const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -48,7 +52,7 @@ const TrackAttendence = () => {
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = prevPaddingRight;
     };
-  }, [isFeedbackOpen]);
+  }, [isFeedbackOpen, isHistoryOpen]);
 
   const instructorProfileId =
     userData?.profile?._id ||
@@ -61,12 +65,25 @@ const TrackAttendence = () => {
     return utc.toISOString().slice(0, 10);
   }, []);
 
-  const endDate = useMemo(() => toUtcYMD(selectedDate), [selectedDate, toUtcYMD]);
+  const endDate = useMemo(() => {
+    if (hasSelectedRange && rangeEnd) return toUtcYMD(rangeEnd);
+    if (hasSelectedRange && rangeStart) return toUtcYMD(rangeStart);
+    return toUtcYMD(selectedDate);
+  }, [hasSelectedRange, rangeEnd, rangeStart, selectedDate, toUtcYMD]);
+
   const startDate = useMemo(() => {
+    if (hasSelectedRange && rangeStart) return toUtcYMD(rangeStart);
     const d = new Date(selectedDate);
     d.setDate(d.getDate() - 29);
     return toUtcYMD(d);
-  }, [selectedDate, toUtcYMD]);
+  }, [hasSelectedRange, rangeStart, selectedDate, toUtcYMD]);
+
+  const formatRangeDate = (date) =>
+    date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
 
   const buildSummaryEndpoint = useCallback(() => {
     const params = new URLSearchParams();
@@ -129,44 +146,6 @@ const TrackAttendence = () => {
     setIsLoading(false);
   }, [buildSummaryEndpoint]);
 
-  const generateCalendar = () => {
-    const year = selectedDate.getFullYear();
-    const month = selectedDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
-    const days = [];
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
-
-    return days;
-  };
-
-  const handleDateSelect = (day) => {
-    if (day) {
-      const newDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day);
-      setSelectedDate(newDate);
-      setHasSelectedDate(true);
-      setShowCalendar(false);
-    }
-  };
-
-  const navigateMonth = (direction) => {
-    const newDate = new Date(selectedDate);
-    newDate.setMonth(newDate.getMonth() + direction);
-    setSelectedDate(newDate);
-  };
-
   const openFeedback = (row) => {
     setFeedbackRow(row || null);
     setFeedbackComment('');
@@ -181,6 +160,16 @@ const TrackAttendence = () => {
     setFeedbackComment('');
     setFeedbackError('');
     setIsSendingFeedback(false);
+  };
+
+  const openHistory = (row) => {
+    setHistoryMember(row || null);
+    setIsHistoryOpen(true);
+  };
+
+  const closeHistory = () => {
+    setIsHistoryOpen(false);
+    setHistoryMember(null);
   };
 
   const handleSendFeedback = async () => {
@@ -259,82 +248,86 @@ const TrackAttendence = () => {
             <div className="relative" ref={calendarRef}>
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
-                className="flex items-center justify-between gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors min-w-[220px] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                className="w-[326px] h-[60px] rounded-[16px] opacity-100 flex items-center justify-between px-4 bg-[#F9FAFB] border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                 style={{ outline: 'none', boxShadow: 'none' }}
               >
-                <span className={hasSelectedDate ? "text-gray-700 font-medium" : "text-gray-500"}>
-                  {hasSelectedDate
-                    ? selectedDate.toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })
-                    : 'Select Date'
-                  }
+                <span className="text-gray-700 text-base truncate">
+                  {hasSelectedRange && rangeStart && rangeEnd
+                    ? `${formatRangeDate(rangeStart)} - ${formatRangeDate(rangeEnd)}`
+                    : 'Select Dates'}
                 </span>
-                <Calendar className="w-4 h-4 text-gray-500" />
+                <img src={images.calendar} alt="Calendar" className="w-5 h-5" />
               </button>
 
               {/* Calendar Dropdown */}
               {showCalendar && (
-                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-4 w-80">
-                  {/* Calendar Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={() => navigateMonth(-1)}
-                      className="p-1 hover:bg-gray-100 rounded focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                      style={{ outline: 'none', boxShadow: 'none' }}
-                    >
-                      <ChevronDown className="w-4 h-4 rotate-90" />
-                    </button>
-                    <h3 className="font-semibold">
-                      {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </h3>
-                    <button
-                      onClick={() => navigateMonth(1)}
-                      className="p-1 hover:bg-gray-100 rounded focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                      style={{ outline: 'none', boxShadow: 'none' }}
-                    >
-                      <ChevronDown className="w-4 h-4 -rotate-90" />
-                    </button>
-                  </div>
-
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                      <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1">
-                    {generateCalendar().map((day, index) => {
-                      const dateToCheck = day ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day) : null;
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const isFuture = dateToCheck && dateToCheck > today;
-
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => handleDateSelect(day)}
-                          className={`h-8 text-sm rounded transition-colors ${
-                            hasSelectedDate && day === selectedDate.getDate()
-                              ? 'bg-[#008080] text-white hover:opacity-90'
-                              : day
-                              ? isFuture
-                                ? 'text-gray-300 cursor-default pointer-events-none'
-                                : 'text-gray-700 hover:bg-gray-100 hover:bg-[#00808020]'
-                              : ''
-                          } focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0`}
-                          style={{ outline: 'none', boxShadow: 'none' }}
-                          disabled={!day || isFuture}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
+                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-4 w-[326px]">
+                  <div className="space-y-3">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm text-gray-700">Start Date</label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        value={rangeStart ? toUtcYMD(rangeStart) : ''}
+                        max={toUtcYMD(new Date())}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setRangeStart(v ? new Date(v) : null);
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm text-gray-700">End Date</label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        value={rangeEnd ? toUtcYMD(rangeEnd) : ''}
+                        max={toUtcYMD(new Date())}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setRangeEnd(v ? new Date(v) : null);
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        className="w-[150px] h-[40px] opacity-100 px-4 py-1 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                        onClick={() => {
+                          setRangeStart(null);
+                          setRangeEnd(null);
+                          setHasSelectedRange(false);
+                          setShowCalendar(false);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        className="w-[150px] h-[40px] opacity-100 px-4 py-1 rounded-lg bg-teal-700 text-white hover:bg-teal-800"
+                        onClick={() => {
+                          const today = new Date();
+                          const startOk = !!rangeStart && rangeStart <= today;
+                          const endOk = !!rangeEnd && rangeEnd <= today;
+                          const orderOk =
+                            !!rangeStart && !!rangeEnd && rangeStart <= rangeEnd;
+                          if (startOk && endOk && orderOk) {
+                            setHasSelectedRange(true);
+                            setShowCalendar(false);
+                            setSelectedDate(new Date(rangeEnd));
+                            setCurrentPage(1);
+                          } else {
+                            emitToast(
+                              'Please select past dates with start before end.',
+                              'error'
+                            );
+                          }
+                        }}
+                      >
+                        Apply
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -377,7 +370,7 @@ const TrackAttendence = () => {
                               </div>
                             )}
                             <p
-                              className="font-medium text-gray-700 text-lg truncate"
+                              className="font-medium text-gray-700 text-lg"
                               title={row?.name || ''}
                             >
                               {row?.name && row.name.length > 13
@@ -405,15 +398,7 @@ const TrackAttendence = () => {
                               Feedback
                             </button>
                             <button
-                              onClick={() =>
-                                navigate('/home/attendance-history', {
-                                  state: {
-                                    member: row,
-                                    startDate,
-                                    endDate,
-                                  },
-                                })
-                              }
+                              onClick={() => openHistory(row)}
                               className="text-sm hover:underline"
                               style={{ color: "#008080" }}
                             >
@@ -495,6 +480,23 @@ const TrackAttendence = () => {
               >
                 {isSendingFeedback ? 'Sending...' : 'Send'}
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isHistoryOpen ? (
+        <div
+          className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center z-50 p-4"
+          onClick={closeHistory}
+        >
+          <div
+            className="bg-white rounded-xl shadow-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+           
+            <div className="p-4 overflow-auto">
+              <AttendenceHistory member={historyMember} startDate={startDate} endDate={endDate} />
             </div>
           </div>
         </div>

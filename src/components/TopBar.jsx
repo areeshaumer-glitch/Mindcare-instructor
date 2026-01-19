@@ -79,7 +79,7 @@ const TopBar = ({ onClick, onMenuClick }) => {
             <button
               type="button"
               onClick={onMenuClick}
-              className="min-[650px]:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 text-gray-700"
+              className="inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 text-gray-700"
               aria-label="Open menu"
             >
               <Menu size={22} />

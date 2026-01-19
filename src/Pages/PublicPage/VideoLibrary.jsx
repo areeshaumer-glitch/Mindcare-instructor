@@ -878,9 +878,9 @@ const VideoLibrary = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div className="flex items-center gap-4">
           {/* {showVideoDetail && (
             <button
@@ -912,16 +912,16 @@ const VideoLibrary = () => {
       {showVideoDetail && selectedVideo ? (
         // Video Detail View (read-only, Edit opens popup)
         <div>
-          <div
-            className="relative mb-6"
-          >
+          <div className="relative mb-6">
             {selectedVideo.fileUrl ? (
               <video
                 src={selectedVideo.fileUrl}
                 controls
                 playsInline
                 preload="metadata"
-                onError={() => setPlaybackError("Video failed to load. Please check the URL or permissions.")}
+                onError={() =>
+                  setPlaybackError("Video failed to load. Please check the URL or permissions.")
+                }
                 className="w-full h-60 object-contain rounded-lg shadow-lg bg-black"
               />
             ) : (
@@ -954,16 +954,14 @@ const VideoLibrary = () => {
             <div className="flex flex-col sm:flex-row sm:justify-end gap-4 mt-8">
               <button
                 onClick={() => handleDelete(selectedVideo)}
-                style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
-                className="border border-teal-600 text-teal-600 hover:bg-teal-50 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
+                className="w-full sm:w-[312px] h-[50px] rounded-[12px] border border-teal-600 text-teal-600 hover:bg-teal-50 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
                 type="button"
               >
                 Delete
               </button>
               <button
                 onClick={() => handleEdit(selectedVideo)}
-                style={{ width: '312px', height: '50px', borderRadius: '12px', transform: 'rotate(0deg)', opacity: 1 }}
-                className="bg-teal-600 text-white hover:bg-teal-700 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
+                className="w-full sm:w-[312px] h-[50px] rounded-[12px] bg-teal-600 text-white hover:bg-teal-700 transition flex items-center justify-center font-['Nunito'] text-[16px] font-semibold"
                 type="button"
               >
                 Edit
@@ -982,7 +980,7 @@ const VideoLibrary = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {videos.map((item) => (
             <button
               key={item.id}

@@ -30,7 +30,7 @@ const Home = () => {
   const location = useLocation();
   const [selected, setSelected] = useState(() => getSelectedFromPath(location.pathname));
   const [resetKey, setResetKey] = useState(0);
-  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 650);
+  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 1024);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const logout = useAuthStore((s) => s.logout);
@@ -86,7 +86,7 @@ const Home = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      const nowCollapsed = window.innerWidth < 650;
+      const nowCollapsed = window.innerWidth < 1024;
       setIsCollapsed(nowCollapsed);
       if (!nowCollapsed) setIsMobileMenuOpen(false);
     };

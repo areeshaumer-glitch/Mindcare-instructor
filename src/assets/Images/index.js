@@ -11,6 +11,7 @@ import chest from './chest.png';
 import thumb1 from './thumb1.png';
 import thumb2 from './thumb2.png';
 import thumb3 from './thumb3.png';
+import calendar from './calendar.png';
 import empty from './empty.png';
 import excer from './excer.png';
 import locate from './locate.png';
@@ -29,6 +30,7 @@ const images = {
   thumb1,
   thumb2,
   thumb3,
+  calendar,
   empty,
   excer,
   locate,

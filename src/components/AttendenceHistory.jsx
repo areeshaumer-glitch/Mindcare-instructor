@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Calendar, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import images from '../assets/Images';
 import { useLocation } from 'react-router-dom';
 import { Method, callApi } from '../network/NetworkManager';
 import { api } from '../network/Environment';
 
-const AttendenceHistory = () => {
+const AttendenceHistory = ({ member: memberProp, startDate: startDateProp, endDate: endDateProp }) => {
   const location = useLocation();
-  const member = location?.state?.member || null;
-  const navigationStartDate = location?.state?.startDate || '';
-  const navigationEndDate = location?.state?.endDate || '';
+  const navigationState = location?.state || {};
+  const member = memberProp ?? navigationState.member ?? null;
+  const navigationStartDate = startDateProp ?? navigationState.startDate ?? '';
+  const navigationEndDate = endDateProp ?? navigationState.endDate ?? '';
 
   const parseYmdToLocalDate = useCallback((ymd) => {
     const raw = String(ymd || '').trim();
@@ -212,7 +214,7 @@ const AttendenceHistory = () => {
                     : 'Select Date'
                   }
                 </span>
-                <Calendar className="w-4 h-4 text-gray-500" />
+                <img src={images.calendar} alt="Calendar" className="w-4 h-4" />
               </button>
 
               {/* Calendar Dropdown */}
