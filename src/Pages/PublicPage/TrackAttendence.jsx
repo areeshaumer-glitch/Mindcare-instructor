@@ -16,19 +16,34 @@ const TrackAttendence = () => {
   const calendarRef = useRef(null);
   const [rangeStart, setRangeStart] = useState(null);
   const [rangeEnd, setRangeEnd] = useState(null);
+  // viewAll: if true, show all history (no date filter)
+  const [viewAll, setViewAll] = useState(true);
   const [hasSelectedRange, setHasSelectedRange] = useState(false);
+
+  // Keep track of applied range to restore if cancelled
+  const [appliedRangeStart, setAppliedRangeStart] = useState(null);
+  const [appliedRangeEnd, setAppliedRangeEnd] = useState(null);
+  const [appliedViewAll, setAppliedViewAll] = useState(true);
+  const [appliedHasSelectedRange, setAppliedHasSelectedRange] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event) {
       if (calendarRef.current && !calendarRef.current.contains(event.target)) {
-        setShowCalendar(false);
+        if (showCalendar) {
+          // Reset to applied state on close
+          setRangeStart(appliedRangeStart);
+          setRangeEnd(appliedRangeEnd);
+          setViewAll(appliedViewAll);
+          setHasSelectedRange(appliedHasSelectedRange);
+          setShowCalendar(false);
+        }
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [showCalendar, appliedRangeStart, appliedRangeEnd, appliedViewAll, appliedHasSelectedRange]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -66,17 +81,19 @@ const TrackAttendence = () => {
   }, []);
 
   const endDate = useMemo(() => {
+    if (viewAll) return null;
     if (hasSelectedRange && rangeEnd) return toUtcYMD(rangeEnd);
     if (hasSelectedRange && rangeStart) return toUtcYMD(rangeStart);
     return toUtcYMD(selectedDate);
-  }, [hasSelectedRange, rangeEnd, rangeStart, selectedDate, toUtcYMD]);
+  }, [viewAll, hasSelectedRange, rangeEnd, rangeStart, selectedDate, toUtcYMD]);
 
   const startDate = useMemo(() => {
+    if (viewAll) return null;
     if (hasSelectedRange && rangeStart) return toUtcYMD(rangeStart);
     const d = new Date(selectedDate);
     d.setDate(d.getDate() - 29);
     return toUtcYMD(d);
-  }, [hasSelectedRange, rangeStart, selectedDate, toUtcYMD]);
+  }, [viewAll, hasSelectedRange, rangeStart, selectedDate, toUtcYMD]);
 
   const formatRangeDate = (date) =>
     date.toLocaleDateString('en-US', {
@@ -218,8 +235,15 @@ const TrackAttendence = () => {
   };
 
   useEffect(() => {
-    void loadAttendance();
-  }, [loadAttendance]);
+    // Only load if it's the initial load or if we have explicit range/all selected
+    if (viewAll || hasSelectedRange) {
+      void loadAttendance();
+    } else if (!hasSelectedRange && !viewAll && !rangeStart && !rangeEnd) {
+      // Initial load default
+      void loadAttendance();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadAttendance, viewAll, hasSelectedRange]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -247,12 +271,23 @@ const TrackAttendence = () => {
             {/* Date Selector */}
             <div className="relative" ref={calendarRef}>
               <button
-                onClick={() => setShowCalendar(!showCalendar)}
+                onClick={() => {
+                  // Always reset to applied state when toggling (whether opening or closing)
+                  // This ensures that any un-applied changes are discarded
+                  setRangeStart(appliedRangeStart);
+                  setRangeEnd(appliedRangeEnd);
+                  setViewAll(appliedViewAll);
+                  setHasSelectedRange(appliedHasSelectedRange);
+                  
+                  setShowCalendar(!showCalendar);
+                }}
                 className="w-[326px] h-[60px] rounded-[16px] opacity-100 flex items-center justify-between px-4 bg-[#F9FAFB] border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                 style={{ outline: 'none', boxShadow: 'none' }}
               >
                 <span className="text-gray-700 text-base truncate">
-                  {hasSelectedRange && rangeStart && rangeEnd
+                  {viewAll
+                    ? 'Select Dates'
+                    : hasSelectedRange && rangeStart && rangeEnd
                     ? `${formatRangeDate(rangeStart)} - ${formatRangeDate(rangeEnd)}`
                     : 'Select Dates'}
                 </span>
@@ -263,6 +298,33 @@ const TrackAttendence = () => {
               {showCalendar && (
                 <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-4 w-[326px]">
                   <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="view-all-checkbox"
+                        checked={viewAll}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setViewAll(true);
+                            setRangeStart(null);
+                            setRangeEnd(null);
+                            setHasSelectedRange(false);
+                            setCurrentPage(1);
+                          } else {
+                            if (!rangeStart || !rangeEnd) {
+                              emitToast('Please select the dates', 'error');
+                            } else {
+                              setViewAll(false);
+                            }
+                          }
+                        }}
+                        className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                      />
+                      <label htmlFor="view-all-checkbox" className="text-sm font-medium text-gray-700">
+                        All
+                      </label>
+                    </div>
+
                     <div className="flex flex-col gap-2">
                       <label className="text-sm text-gray-700">Start Date</label>
                       <input
@@ -272,7 +334,11 @@ const TrackAttendence = () => {
                         max={toUtcYMD(new Date())}
                         onChange={(e) => {
                           const v = e.target.value;
-                          setRangeStart(v ? new Date(v) : null);
+                          const d = v ? new Date(v) : null;
+                          setRangeStart(d);
+                          if (d && rangeEnd) {
+                            setViewAll(false);
+                          }
                         }}
                       />
                     </div>
@@ -285,28 +351,28 @@ const TrackAttendence = () => {
                         max={toUtcYMD(new Date())}
                         onChange={(e) => {
                           const v = e.target.value;
-                          setRangeEnd(v ? new Date(v) : null);
+                          const d = v ? new Date(v) : null;
+                          setRangeEnd(d);
+                          if (rangeStart && d) {
+                            setViewAll(false);
+                          }
                         }}
                       />
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
                       <button
                         type="button"
-                        className="w-[150px] h-[40px] opacity-100 px-4 py-1 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                        className="w-full h-[40px] opacity-100 px-4 py-1 rounded-lg bg-teal-700 text-white hover:bg-teal-800"
                         onClick={() => {
-                          setRangeStart(null);
-                          setRangeEnd(null);
-                          setHasSelectedRange(false);
-                          setShowCalendar(false);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        All
-                      </button>
-                      <button
-                        type="button"
-                        className="w-[150px] h-[40px] opacity-100 px-4 py-1 rounded-lg bg-teal-700 text-white hover:bg-teal-800"
-                        onClick={() => {
+                          if (viewAll) {
+                            setAppliedViewAll(true);
+                            setAppliedRangeStart(null);
+                            setAppliedRangeEnd(null);
+                            setAppliedHasSelectedRange(false);
+                            setShowCalendar(false);
+                            return;
+                          }
+
                           const today = new Date();
                           const startOk = !!rangeStart && rangeStart <= today;
                           const endOk = !!rangeEnd && rangeEnd <= today;
@@ -314,9 +380,15 @@ const TrackAttendence = () => {
                             !!rangeStart && !!rangeEnd && rangeStart <= rangeEnd;
                           if (startOk && endOk && orderOk) {
                             setHasSelectedRange(true);
+                            setAppliedHasSelectedRange(true);
+                            setAppliedRangeStart(rangeStart);
+                            setAppliedRangeEnd(rangeEnd);
+                            setAppliedViewAll(false);
+
                             setShowCalendar(false);
                             setSelectedDate(new Date(rangeEnd));
                             setCurrentPage(1);
+                            setViewAll(false);
                           } else {
                             emitToast(
                               'Please select past dates with start before end.',
