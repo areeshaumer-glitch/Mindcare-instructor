@@ -19,6 +19,7 @@ export const api = {
   s3List: 's3/list',
   attendanceSummary: 'attendance/summary',
   attendanceMeHistory: 'attendance/me/history',
+  attendanceTrainersSummary: 'attendance/trainers/summary',
   mindfulnessVideos: 'mindfulness-videos',
   feedback: 'feedback',
 };
