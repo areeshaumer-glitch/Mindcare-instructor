@@ -17,7 +17,7 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], onMarkAllRead 
   });
 
   return (
-    <div className="fixed inset-0 bg-transparent bg-opacity-50 flex items-center justify-end p-4 z-50"   onClick={onClose}>
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/50 flex items-center justify-end p-4 z-50"   onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         {/* Header */}
