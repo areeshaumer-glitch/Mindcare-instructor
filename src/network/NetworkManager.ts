@@ -40,6 +40,7 @@ interface ApiCallParams {
   headers?: Record<string, string>;
   responseType?: any;
   showToast?: boolean;
+  timeout?: number;
 }
 
 // Configure axios defaults
@@ -113,6 +114,7 @@ export const callApi = async ({
   headers = {},
   responseType,
   showToast = true,
+  timeout,
 }: ApiCallParams): Promise<void> => {
   try {
     const token = useAuthStore.getState().token;
@@ -120,6 +122,10 @@ export const callApi = async ({
     let response: AxiosResponse<any>;
 
     const requestConfig: any = { headers };
+
+    if (timeout) {
+      requestConfig.timeout = timeout;
+    }
 
     if (token) {
       requestConfig.headers = {

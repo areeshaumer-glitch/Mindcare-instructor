@@ -199,6 +199,7 @@ const CreateWorkout = () => {
       method: Method.POST,
       endPoint: api.workoutsAi,
       bodyParams,
+      timeout: 300000, // 5 minutes timeout for AI generation
       onSuccess: (response) => {
         const list = extractWorkoutPlans(response).map(normalizeWorkoutPlan);
         if (Array.isArray(list) && list.length > 0) {
@@ -704,7 +705,7 @@ const CreateWorkout = () => {
 
         {/* GLOBAL OVERLAY: show when any popup modal appears (create/exercises/delete) OR delete modal open during edit */}
         {((currentModal !== null && currentModal !== 'edit') || showDeleteModal) && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-black/10 z-40" />
+          <div className="fixed inset-0 backdrop-blur-sm bg-black/50 z-40" />
         )}
 
 

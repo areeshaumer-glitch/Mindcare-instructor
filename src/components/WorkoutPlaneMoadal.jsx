@@ -62,7 +62,7 @@ export function WorkoutPlanModal({ showModal: externalShowModal, setShowModal: e
         )}
 
         {showModal && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-black/10 flex justify-center items-center z-50">
+          <div className="fixed inset-0 backdrop-blur-sm bg-black/50 flex justify-center items-center z-50">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
               <button
                 onClick={closeModal}
