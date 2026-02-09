@@ -2,79 +2,73 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { ChevronDown } from 'lucide-react';
 import images from '../assets/Images';
 import { useLocation } from 'react-router-dom';
-import { Method, callApi } from '../network/NetworkManager';
+import { Method, callApi, emitToast } from '../network/NetworkManager';
 import { api } from '../network/Environment';
 
 const AttendenceHistory = ({ member: memberProp, startDate: startDateProp, endDate: endDateProp }) => {
   const location = useLocation();
   const navigationState = location?.state || {};
   const member = memberProp ?? navigationState.member ?? null;
-  const navigationStartDate = startDateProp ?? navigationState.startDate ?? '';
-  const navigationEndDate = endDateProp ?? navigationState.endDate ?? '';
 
-  const parseYmdToLocalDate = useCallback((ymd) => {
-    const raw = String(ymd || '').trim();
-    if (!raw) return null;
-    const [y, m, d] = raw.split('-').map((n) => Number(n));
-    if (!y || !m || !d) return null;
-    return new Date(y, m - 1, d);
-  }, []);
-
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const initial = parseYmdToLocalDate(navigationEndDate);
-    return initial || new Date();
-  });
-  const [selectedYmd, setSelectedYmd] = useState('');
-  const [showCalendar, setShowCalendar] = useState(false);
   const [rows, setRows] = useState([]);
   const [apiError, setApiError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef(null);
 
+  const [rangeStart, setRangeStart] = useState(null);
+  const [rangeEnd, setRangeEnd] = useState(null);
+  const [viewAll, setViewAll] = useState(true);
+  const [hasSelectedRange, setHasSelectedRange] = useState(false);
+  
+  // Keep track of applied range to restore if cancelled
+  const [appliedRangeStart, setAppliedRangeStart] = useState(null);
+  const [appliedRangeEnd, setAppliedRangeEnd] = useState(null);
+  const [appliedViewAll, setAppliedViewAll] = useState(true);
+  const [appliedHasSelectedRange, setAppliedHasSelectedRange] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (calendarRef.current && !calendarRef.current.contains(event.target)) {
-        setShowCalendar(false);
+        if (showCalendar) {
+           // Reset to applied state on close
+           setRangeStart(appliedRangeStart);
+           setRangeEnd(appliedRangeEnd);
+           setViewAll(appliedViewAll);
+           setHasSelectedRange(appliedHasSelectedRange);
+           setShowCalendar(false);
+        }
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
-
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  }, [showCalendar, appliedRangeStart, appliedRangeEnd, appliedViewAll, appliedHasSelectedRange]);
 
   const toUtcYMD = useCallback((date) => {
     const utc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     return utc.toISOString().slice(0, 10);
   }, []);
 
-  const defaultEndDate = useMemo(() => {
-    if (typeof navigationEndDate === 'string' && navigationEndDate.trim()) {
-      return String(navigationEndDate).trim();
-    }
-    return toUtcYMD(new Date());
-  }, [navigationEndDate, toUtcYMD]);
+  const formatRangeDate = (date) =>
+    date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
 
-  const defaultStartDate = useMemo(() => {
-    if (typeof navigationStartDate === 'string' && navigationStartDate.trim()) {
-      return String(navigationStartDate).trim();
-    }
-    const localEnd = parseYmdToLocalDate(defaultEndDate) || new Date();
-    const d = new Date(localEnd);
-    d.setDate(d.getDate() - 29);
-    return toUtcYMD(d);
-  }, [defaultEndDate, navigationStartDate, parseYmdToLocalDate, toUtcYMD]);
+  const queryStartDate = useMemo(() => {
+    if (viewAll) return '2024-01-01'; // Default start date for "All" history
+    if (hasSelectedRange && rangeStart) return toUtcYMD(rangeStart);
+    return null;
+  }, [viewAll, hasSelectedRange, rangeStart, toUtcYMD]);
 
-  const queryStartDate = selectedYmd ? selectedYmd : defaultStartDate;
-  const queryEndDate = selectedYmd ? selectedYmd : defaultEndDate;
+  const queryEndDate = useMemo(() => {
+    if (viewAll) return toUtcYMD(new Date()); // Default end date for "All" history
+    if (hasSelectedRange && rangeEnd) return toUtcYMD(rangeEnd);
+    return null;
+  }, [viewAll, hasSelectedRange, rangeEnd, toUtcYMD]);
 
   const buildHistoryEndpoint = useCallback(() => {
     const params = new URLSearchParams();
@@ -82,10 +76,12 @@ const AttendenceHistory = ({ member: memberProp, startDate: startDateProp, endDa
     if (queryEndDate) params.set('endDate', queryEndDate);
     params.set('page', '1');
     params.set('limit', '1000');
+    
     if (member?.key) {
-      params.set('userId', String(member.key));
+      // Use trainerId filter as this is for a specific member's history
+      params.set('trainerId', String(member.key));
     }
-    return `${api.attendanceMeHistory}?${params.toString()}`;
+    return `${api.attendanceTrainersSummary}?${params.toString()}`;
   }, [member?.key, queryEndDate, queryStartDate]);
 
   const loadHistory = useCallback(async () => {
@@ -96,48 +92,29 @@ const AttendenceHistory = ({ member: memberProp, startDate: startDateProp, endDa
       method: Method.GET,
       endPoint: buildHistoryEndpoint(),
       onSuccess: (res) => {
-        const getNumber = (value) => {
-          const n = Number(value);
-          return Number.isFinite(n) ? n : 0;
-        };
+        let dataList = [];
+        if (Array.isArray(res?.data)) dataList = res.data;
+        else if (Array.isArray(res?.data?.data)) dataList = res.data.data;
+        else if (Array.isArray(res)) dataList = res;
 
-        const meta =
-          res?.meta ||
-          res?.data?.meta ||
-          res?.data?.data?.meta ||
-          null;
+        const newRows = dataList.map((item) => {
+           const stats = item?.stats || {};
+           return {
+             key: item.trainerId || member?.key || 'me',
+             name: item.name || member?.name || 'Me',
+             gymPct: stats.percentGym ?? 0,
+             homePct: stats.percentHome ?? 0,
+             absentPct: stats.percentAbsent ?? 0,
+           };
+        });
 
-        const summary = meta?.summary || null;
-
-        const apiGymPct = getNumber(summary?.percentGym);
-        const apiHomePct = getNumber(summary?.percentHome);
-        const apiAbsentPct = getNumber(summary?.percentAbsent);
-
-        const fallbackGymPct = getNumber(member?.gymPct);
-        const fallbackHomePct = getNumber(member?.homePct);
-        const fallbackAbsentPct = getNumber(member?.absentPct);
-
-        const apiTotalMarkedDays = getNumber(summary?.totalMarkedDays ?? meta?.totalMarkedDays);
-
-        const shouldFallbackToSummaryRow =
-          !selectedYmd &&
-          member &&
-          apiTotalMarkedDays === 0 &&
-          (fallbackGymPct > 0 || fallbackHomePct > 0 || fallbackAbsentPct < 100);
-
-        const gymPct = shouldFallbackToSummaryRow ? fallbackGymPct : apiGymPct;
-        const homePct = shouldFallbackToSummaryRow ? fallbackHomePct : apiHomePct;
-        const absentPct = shouldFallbackToSummaryRow ? fallbackAbsentPct : apiAbsentPct;
-
-        setRows([
-          {
-            key: member?.key || 'me',
-            name: member?.name || 'Me',
-            gymPct,
-            homePct,
-            absentPct,
-          },
-        ]);
+        if (newRows.length === 0 && member) {
+           // Fallback if no data found but we have a member context, maybe show empty stats or just empty list
+           // For now, let's just show empty list which will trigger "No attendance records found"
+           setRows([]);
+        } else {
+           setRows(newRows);
+        }
       },
       onError: (err) => {
         setRows([]);
@@ -146,49 +123,12 @@ const AttendenceHistory = ({ member: memberProp, startDate: startDateProp, endDa
     });
 
     setIsLoading(false);
-  }, [buildHistoryEndpoint, member, selectedYmd]);
+  }, [buildHistoryEndpoint, member]);
 
   useEffect(() => {
     void loadHistory();
-  }, [loadHistory]);
+  }, [loadHistory]); // loadHistory depends on buildHistoryEndpoint which depends on dates
 
-  const generateCalendar = () => {
-    const year = selectedDate.getFullYear();
-    const month = selectedDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
-    const days = [];
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
-
-    return days;
-  };
-
-  const handleDateSelect = (day) => {
-    if (day) {
-      const newDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day);
-      setSelectedDate(newDate);
-      setSelectedYmd(toUtcYMD(newDate));
-      setShowCalendar(false);
-    }
-  };
-
-  const navigateMonth = (direction) => {
-    const newDate = new Date(selectedDate);
-    newDate.setMonth(newDate.getMonth() + direction);
-    setSelectedDate(newDate);
-  };
   return (
     <>
       <div className="bg-white p-4 rounded-2xl">
@@ -200,87 +140,130 @@ const AttendenceHistory = ({ member: memberProp, startDate: startDateProp, endDa
             {/* Date Selector */}
             <div className="relative" ref={calendarRef}>
               <button
-                onClick={() => setShowCalendar(!showCalendar)}
-                className="flex items-center justify-between gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors min-w-[220px] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                onClick={() => {
+                    setRangeStart(appliedRangeStart);
+                    setRangeEnd(appliedRangeEnd);
+                    setViewAll(appliedViewAll);
+                    setHasSelectedRange(appliedHasSelectedRange);
+                    setShowCalendar(!showCalendar)
+                }}
+                className="w-[326px] h-[60px] rounded-[16px] opacity-100 flex items-center justify-between px-4 bg-[#F9FAFB] border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                 style={{ outline: 'none', boxShadow: 'none' }}
               >
-                <span className={selectedYmd ? "text-gray-700 font-medium" : "text-gray-500"}>
-                  {selectedYmd
-                    ? selectedDate.toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })
-                    : 'Select Date'
+                <span className="text-gray-700 text-base truncate">
+                  {viewAll
+                    ? 'Select Dates'
+                    : hasSelectedRange && rangeStart && rangeEnd
+                    ? `${formatRangeDate(rangeStart)} - ${formatRangeDate(rangeEnd)}`
+                    : 'Select Dates'
                   }
                 </span>
-                <img src={images.calendar} alt="Calendar" className="w-4 h-4" />
+                <img src={images.calendar} alt="Calendar" className="w-5 h-5" />
               </button>
 
               {/* Calendar Dropdown */}
               {showCalendar && (
-                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-4 w-80">
-                  {/* Calendar Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={() => navigateMonth(-1)}
-                      className="p-1 hover:bg-gray-100 rounded focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                      style={{ outline: 'none', boxShadow: 'none' }}
-                    >
-                      <ChevronDown className="w-4 h-4 rotate-90" />
-                    </button>
-                    <h3 className="font-semibold">
-                      {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </h3>
-                    <button
-                      onClick={() => navigateMonth(1)}
-                      className="p-1 hover:bg-gray-100 rounded focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                      style={{ outline: 'none', boxShadow: 'none' }}
-                    >
-                      <ChevronDown className="w-4 h-4 -rotate-90" />
-                    </button>
-                  </div>
+                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-4 w-[326px]">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="view-all-checkbox-history"
+                        checked={viewAll}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setViewAll(true);
+                            setRangeStart(null);
+                            setRangeEnd(null);
+                            setHasSelectedRange(false);
+                          } else {
+                            if (!rangeStart || !rangeEnd) {
+                              emitToast('Please select the dates', 'error');
+                            } else {
+                              setViewAll(false);
+                            }
+                          }
+                        }}
+                        className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                      />
+                      <label htmlFor="view-all-checkbox-history" className="text-sm font-medium text-gray-700">
+                        All
+                      </label>
+                    </div>
 
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                      <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm text-gray-700">Start Date</label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        value={rangeStart ? toUtcYMD(rangeStart) : ''}
+                        max={toUtcYMD(new Date())}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const d = v ? new Date(v) : null;
+                          setRangeStart(d);
+                          if (d && rangeEnd) {
+                            setViewAll(false);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm text-gray-700">End Date</label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        value={rangeEnd ? toUtcYMD(rangeEnd) : ''}
+                        max={toUtcYMD(new Date())}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const d = v ? new Date(v) : null;
+                          setRangeEnd(d);
+                          if (rangeStart && d) {
+                            setViewAll(false);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        className="w-full h-[40px] opacity-100 px-4 py-1 rounded-lg bg-teal-700 text-white hover:bg-teal-800"
+                        onClick={() => {
+                          if (viewAll) {
+                            setAppliedViewAll(true);
+                            setAppliedRangeStart(null);
+                            setAppliedRangeEnd(null);
+                            setAppliedHasSelectedRange(false);
+                            setShowCalendar(false);
+                            return;
+                          }
 
-                  <div className="grid grid-cols-7 gap-1">
-                    {generateCalendar().map((day, index) => {
-                      const dateToCheck = day ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day) : null;
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const isFuture = dateToCheck && dateToCheck > today;
-                      const selectedStyle =
-                        selectedYmd && day === selectedDate.getDate()
-                          ? { backgroundColor: '#008080' }
-                          : {};
+                          const today = new Date();
+                          const startOk = !!rangeStart && rangeStart <= today;
+                          const endOk = !!rangeEnd && rangeEnd <= today;
+                          const orderOk =
+                            !!rangeStart && !!rangeEnd && rangeStart <= rangeEnd;
+                          if (startOk && endOk && orderOk) {
+                            setHasSelectedRange(true);
+                            setAppliedHasSelectedRange(true);
+                            setAppliedRangeStart(rangeStart);
+                            setAppliedRangeEnd(rangeEnd);
+                            setAppliedViewAll(false);
 
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => handleDateSelect(day)}
-                          className={`h-8 text-sm rounded transition-colors ${
-                            selectedYmd && day === selectedDate.getDate()
-                              ? 'text-white hover:opacity-90'
-                              : day
-                              ? isFuture
-                                ? 'text-gray-300 cursor-default pointer-events-none'
-                                : 'text-gray-700 hover:bg-gray-100 hover:bg-[#00808020]'
-                              : ''
-                          } focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0`}
-                          style={{ outline: 'none', boxShadow: 'none', ...selectedStyle }}
-                          disabled={!day || isFuture}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
+                            setShowCalendar(false);
+                            setViewAll(false);
+                          } else {
+                            emitToast(
+                              'Please select past dates with start before end.',
+                              'error'
+                            );
+                          }
+                        }}
+                      >
+                        Apply
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
