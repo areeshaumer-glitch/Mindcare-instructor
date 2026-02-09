@@ -81,14 +81,14 @@ const TrackAttendence = () => {
   }, []);
 
   const endDate = useMemo(() => {
-    if (viewAll) return null;
+    if (viewAll) return toUtcYMD(new Date());
     if (hasSelectedRange && rangeEnd) return toUtcYMD(rangeEnd);
     if (hasSelectedRange && rangeStart) return toUtcYMD(rangeStart);
     return toUtcYMD(selectedDate);
   }, [viewAll, hasSelectedRange, rangeEnd, rangeStart, selectedDate, toUtcYMD]);
 
   const startDate = useMemo(() => {
-    if (viewAll) return null;
+    if (viewAll) return '2024-01-01';
     if (hasSelectedRange && rangeStart) return toUtcYMD(rangeStart);
     const d = new Date(selectedDate);
     d.setDate(d.getDate() - 29);
@@ -486,7 +486,7 @@ const TrackAttendence = () => {
             </div>
 
             {/* Pagination Controls */}
-            {rows.length > 0 && (
+            {rows.length > 10 && (
               <div className="flex items-center justify-end px-6 py-4 border-t border-gray-100 gap-4">
                 <span className="text-sm text-gray-600">
                   Page {currentPage} of {totalPages}
@@ -523,7 +523,7 @@ const TrackAttendence = () => {
 
       {isFeedbackOpen ? (
         <div
-          className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 backdrop-blur-sm bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={closeFeedback}
         >
           <div
@@ -559,7 +559,7 @@ const TrackAttendence = () => {
 
       {isHistoryOpen ? (
         <div
-          className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 backdrop-blur-sm bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={closeHistory}
         >
           <div
